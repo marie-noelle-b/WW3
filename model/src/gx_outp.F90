@@ -30,7 +30,7 @@ PROGRAM GXOUTP
   !/                  |            J.H. Alves             |
   !/                  |            F. Ardhuin             |
   !/                  |                        FORTRAN 90 |
-  !/                  | Last update :         27-Aug-2015 |
+  !/                  | Last update :         08-Jul-2024 |
   !/                  +-----------------------------------+
   !/
   !/    30-Jun-1999 : Final FORTRAN 77                    ( version 1.18 )
@@ -63,6 +63,7 @@ PROGRAM GXOUTP
   !/    27-Aug-2015 : Sice add as additional output       ( version 5.10 )
   !/                  (in source terms)
   !/    19-Jul-2021 : Momentum and air density support    ( version 7.14 )
+  !/    06-Oct-2020 : Add TAUBK parameter                 ( version 7.XX )
   !/
   !/    Copyright 2009-2012 National Weather Service (NWS),
   !/       National Oceanic and Atmospheric Administration.  All rights
@@ -782,7 +783,8 @@ CONTAINS
 #endif
 #ifdef W3_ST4
     REAL                    :: FMEANWS, TAUWX, TAUWY, AMAX, &
-         TAUWNX, TAUWNY,  FMEAN1, WHITECAP(1:4), DLWMEAN
+                               TAUWNX, TAUWNY,  FMEAN1, WHITECAP(1:4), DLWMEAN, &
+                               TAUBK, TAUWIS, TAUAFS
 #endif
 #ifdef W3_ST6
     REAL                    :: AMAX, TAUWX, TAUWY, TAUWNX, TAUWNY
@@ -1219,7 +1221,9 @@ CONTAINS
 #endif
 #ifdef W3_ST4
           CALL W3SDS4 ( A, WN, CG,          &
-               USTAR, USTD, DEPTH, DAIR, XDS, DIA, IX, IY, LAMBDA, WHITECAP , DLWMEAN)
+               UABS, USTAR, USTD, DEPTH, Z0, DAIR, XDS, DIA, IX, IY, &
+               LAMBDA, WHITECAP, DLWMEAN, &
+               TAUBK, TAUWIS, TAUAFS)
 #endif
 #ifdef W3_ST6
           CALL W3SDS6 ( A, CG, WN,            XDS, DIA )

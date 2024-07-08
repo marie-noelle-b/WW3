@@ -2029,8 +2029,9 @@ CONTAINS
   !> @author L. Romero
   !> @date   13-Aug-2021
   !>
-  SUBROUTINE W3SDS4 (A, K, CG, USTAR, USDIR, DEPTH, DAIR, SRHS,    &
-       DDIAG, IX, IY, BRLAMBDA, WHITECAP, DLWMEAN )
+  SUBROUTINE W3SDS4 (A, K, CG, U, USTAR, USDIR, DEPTH, Z0, DAIR, SRHS,    &
+       DDIAG, IX, IY, BRLAMBDA, WHITECAP, DLWMEAN, &
+       TAUBK, TAUWIS, TAUAFS )
     !/
     !/                  +-----------------------------------+
     !/                  | WAVEWATCH III           NOAA/NCEP |
@@ -2044,6 +2045,7 @@ CONTAINS
     !/    13-Nov-2013 : Reduced frequency range with IG1 switch
     !/    06-Jun-2018 : Add optional DEBUGSRC              ( version 6.04 )
     !/    22-Feb-2020 : Option to use Romero (GRL 2019)    ( version 7.06 )
+    !/    08-Dec-2020 : Wave breaking flux R. Fernandes 
     !/    13-Aug-2021 : Consider DAIR a variable           ( version 7.14 )
     !/    01-Mar-2023 : Clean up of SDS4                   ( version 7.xx )
     !/
@@ -2066,13 +2068,18 @@ CONTAINS
     !       IX, IY    Int   I   Grid Index
     !       A         R.A.  I   Action density spectrum (1-D).
     !       K         R.A.  I   Wavenumber for entire spectrum.          *)
+    !       U         Real  I   Wind speed.
     !       USTAR     Real  I   Friction velocity.
     !       USDIR     Real  I   wind stress direction.
     !       DEPTH     Real  I   Water depth.
+    !       Z0        Real  I   Corresponding z0.
     !       DAIR      Real  I   Air density
     !       S         R.A.  O   Source term (1-D version).
     !       D         R.A.  O   Diagonal term of derivative.             *)
     !       BRLAMBDA  R.A.  O   Phillips' Lambdas
+    !       TAUBK     Real  O   Total wave breaking stress - sum of wave induced and air-flow separation stresses (R. Fernandes 2020)
+    !       TAUWIS    Real  O   wave induced stress
+    !       TAUAFS    Real  O   air-flow separation stress
     !     ----------------------------------------------------------------
     !                         *) Stored in 1-D array with dimension NTH*NK
     !
@@ -2106,7 +2113,7 @@ CONTAINS
     ! 10. Source code :
     !
     !/ ------------------------------------------------------------------- /
-    USE CONSTANTS,ONLY: GRAV, DWAT, PI, TPI, RADE, DEBUG_NODE
+    USE CONSTANTS,ONLY: GRAV, KAPPA, DWAT, PI, TPI, RADE, DEBUG_NODE
     USE W3GDATMD, ONLY: NSPEC, NTH, NK, SSDSBR, SSDSBT, DDEN,      &
          SSDSC, EC2, ES2, ESC,                      &
          SIG, SSDSP, ECOS, ESIN, DTH, AAIRGB,       &
@@ -2139,9 +2146,11 @@ CONTAINS
     !/
     INTEGER, OPTIONAL, INTENT(IN) :: IX, IY
     REAL, INTENT(IN)        :: A(NSPEC), K(NK), CG(NK),            &
-         DEPTH, DAIR, USTAR, USDIR, DLWMEAN
+                                 DEPTH, DAIR, USTAR, USDIR, DLWMEAN, &
+                                 U, Z0 
     REAL, INTENT(OUT)       :: SRHS(NSPEC), DDIAG(NSPEC), BRLAMBDA(NSPEC)
     REAL, INTENT(OUT)       :: WHITECAP(1:4)
+    REAL, INTENT(OUT)       :: TAUBK,TAUWIS,TAUAFS
     !/
     !/ ------------------------------------------------------------------- /
     !/ Local parameters
@@ -2179,6 +2188,19 @@ CONTAINS
     REAL                    :: TSTR, TMAX, DT, T, MFT, DIRFORCUM
     REAL                    :: PB(NSPEC), PB2(NSPEC), BRM12(NK), BTOVER
     REAL                    :: KO, LMODULATION(NTH)
+    !/-----------------------------------------------------------------------------------------
+    !!!!!!!!!!!!!!!!! Added by R. Fernandes et al (2020) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !
+    REAL                    :: ZINN       ! approximate inner region height
+    REAL                    :: UINN       ! approximate wind speed at ZINN
+    REAL                    :: ZCAFS      ! critical layer height for AFS stress calculation, Kudryetsev et Makin (2001)
+    REAL                    :: CPHI       ! phase speed of waves
+    REAL                    :: BETAK      ! wind growth rate
+    REAL                    :: BK         ! saturation spectrum
+    REAL                    :: WCAPFX     ! whitecap percentage recalculated for fluxes
+    REAL                    :: LBDC
+    REAL                    :: FCTR
+    REAL                    :: ZCF
     !/
     !/ ------------------------------------------------------------------- /
     !/
@@ -2641,6 +2663,110 @@ CONTAINS
         WHITECAP(2) = WHITECAP(2) + COEF4(IK) * MFT
       END DO
     END IF
+!----------------------------------------------------------------------------------------------------------------------------------------
+! 2d   WAVE BREAKING flux calcul R. Fernandes et al. (2020) for coupled model: tau_wis and tau_afs (wave breaking and air-flow separation stresses) 
+!      Note: the module sends TAUBK to the atmospheric model. 
+!      Date: 28/09/2020
+!----------------------------------------------------------------------------------------------------------------------------------------
+!
+!/ Local parameters
+!
+!      REAL                    :: ZINN       ! approximate inner region height
+!      REAL                    :: UINN       ! approximate wind speed at ZINN
+!      REAL                    :: ZCAFS      ! critical layer height for AFS stress calculation, Kudryetsev et Makin (2001)
+!      REAL                    :: CPHI       ! phase speed of waves
+!      REAL                    :: BETAK      ! wind growth rate
+!      REAL                    :: BK         ! saturation spectrum
+!      REAL                    :: TAUWIS     ! wave induced stress
+!      REAL                    :: TAUAFS     ! air-flow separation stress
+!      REAL                    :: WCAPFX     ! whitecap percentage recalculated for fluxes
+
+! 
+ 
+!----------------------------------------------------------------------------
+!
+        ZCF  =0.
+        ZCAFS =0.
+        BETAK = 0.
+        BK    = 0.
+        TAUWIS = 0.
+        TAUAFS = 0.
+        WCAPFX = 0.
+        TAUBK = 0.
+
+     DO IK=1, NK
+
+        IS0=(IK-1)*NTH
+        CPHI   = SIG(IK)/K(IK)  
+        ZINN   = sqrt(0.5)/K(IK)
+        UINN   = U*(ZINN/10)**0.11 
+
+        IF ( CPHI .LE. UINN ) THEN !! limitting condition for fast moving waves Kudryetsev et al (2014)
+           BETAK = (5/(USTAR))*((USTAR/CPHI)**2)*(COS(DLWMEAN-USDIR))**2  !! wind growth rate parameter Kudryatsev et al (2001) 
+!!            BETAK = (5/(USTAR))*((USTAR/CPHI)**2)  !! wind growth rate parameter Kudryatsev et al (2001) 
+           BK    = BTH0(IK)
+           ZCF   = KAPPA*CPHI/(USTAR*ABS(COS(ABS(DLWMEAN))))
+!!           ZCF   = KAPPA*CPHI/(USTAR*1)
+           IF (ZCF .LT. 8) THEN
+             ZCAFS     = Z0*EXP(ZCF)
+           ELSE
+             ZCF = 8.0
+             ZCAFS     = Z0*EXP(ZCF)
+           ENDIF
+        ELSE
+           BETAK  = 0.
+           BK     = 0.
+           ZCAFS  = 0.
+        ENDIF
+
+
+    IF (U .GT. 10) THEN
+        TAUWIS   = TAUWIS + 6.0E-5*(DWAT/DAIR)*ABS(COS(DLWMEAN-USDIR))*BETAK*BK*SIG(IK)**2/K(IK)**4   ! Kudryatsev et al 2014
+        ! for testing 
+        !!TAUWIS   = TAUWIS + 6.0E-5*(DWAT/DAIR)*ABS(1)*BETAK*BK*SIG(IK)**2/K(IK)**4  
+    ELSE
+        TAUWIS   = TAUWIS + 0.5E-5*(DWAT/DAIR)*ABS(COS(DLWMEAN-USDIR))*BETAK*BK*SIG(IK)**2/K(IK)**4
+        ! for testing
+        !!TAUWIS   = TAUWIS + 0.5E-5*(DWAT/DAIR)*ABS(1)*BETAK*BK*SIG(IK)**2/K(IK)**4
+    ENDIF
+
+    IF ( CPHI .LE. UINN ) THEN
+       TAUAFS = TAUAFS + (0.6E-4)*2*(0.5*1/KAPPA**2)*((USTAR)**2)*LOG(0.5/(K(IK)*ZCAFS)) &
+               *LOG(0.5/(K(IK)*ZCAFS))*(ABS(COS(DLWMEAN-USDIR)))**3*BETAK*BK/(2.8E-3*K(IK)*CPHI)    ! Kudryatsev et al 2014  
+       !!   TAUAFS = TAUAFS + (0.6E-4)*2*(0.5*1/KAPPA**2)*((USTAR)**2)*LOG(0.5/(K(IK)*ZCAFS)) &
+         !!       *LOG(0.5/(K(IK)*ZCAFS))*(ABS(1))**3*BETAK*BK/(2.8E-3*K(IK)*CPHI) 
+    ELSE
+        TAUAFS = TAUAFS + 0.
+    ENDIF 
+
+!    IF ( CPHI .LE. UINN ) THEN
+!        TAUAFS = TAUAFS + (0.6E-4)*2*(0.5*1/KAPPA**2)*((USTAR)**2)*LOG(0.5/(K(IK)*1)) &
+!               *LOG(0.5/(K(IK)*1))*BETAK*BK/(2.8E-3*K(IK)*CPHI)    ! Kudryatsev et al 2014  
+!    ELSE
+!        TAUAFS = TAUAFS + 0.
+!    ENDIF 
+
+    END DO
+
+  WCAPFX = (TANH(2*U/63))**2.5
+
+        IF (WCAPFX .GT. 1) THEN
+           WCAPFX=1
+        ENDIF
+
+    TAUBK = (1-WCAPFX)*TAUWIS + WCAPFX*TAUAFS  !! Wind-wave stress by R. Fernandes et al 2020 to be sent to atmospheric model
+
+! print*, U, TAUBK
+ 
+ IF (TAUBK .LT. 0) THEN
+    TAUBK = 0.
+ ENDIF
+
+!........................................................................................................................................................
+! 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! END OF MODIF BY R Fernandes
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !
     ! End of output computing
     !

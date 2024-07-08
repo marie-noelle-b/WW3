@@ -201,7 +201,8 @@ CONTAINS
        TAUWY, TAUOX, TAUOY, TAUWIX, TAUWIY, TAUWNX,&
        TAUWNY, PHIAW, CHARN, TWS, PHIOC, WHITECAP, &
        D50, PSIC, BEDFORM , PHIBBL, TAUBBL, TAUICE,&
-       PHICE, TAUOCX, TAUOCY, WNMEAN, DAIR, COEF)
+       PHICE, TAUOCX, TAUOCY, WNMEAN, DAIR, COEF,  &
+       TAUBK,TAUWIS,TAUAFS) 
     !/
     !/                  +-----------------------------------+
     !/                  | WAVEWATCH III           NOAA/NCEP |
@@ -265,6 +266,7 @@ CONTAINS
     !/    22-Mar-2021 : Add extra fields used in coupling   ( version 7.13 )
     !/    07-Jun-2021 : S_{nl5} GKE NL5 (Q. Liu)            ( version 7.13 )
     !/    19-Jul-2021 : Momentum and air density support    ( version 7.14 )
+    !/    06-Oct-2020 : Add TAUBK parameter                 ( version 7.XX )
     !/
     !/    Copyright 2009-2013 National Weather Service (NWS),
     !/       National Oceanic and Atmospheric Administration.  All rights
@@ -349,6 +351,9 @@ CONTAINS
     !       DELA    Real.  I   grid cell area                 ( !/BS1 )
     !       FPI     Real  I/O  Peak-input frequency.          ( !/ST2 )
     !      WHITECAP R.A.   O   Whitecap statisics             ( !/ST4 )
+    !       TAUBK   Real   O   Wind-wave stress with breaking ( !/ST4 )
+    !       TAUWIS  Real   O   wave induces stress            ( !/ST4 )
+    !       TAUAFS  Real   O   air-flow separation stress     ( !/ST4 )
     !       DTDYN   Real   O   Average dynamic time step.
     !       FCUT    Real   O   Cut-off frequency for tail.
     !       DTG     Real   I   Global time step.
@@ -674,7 +679,8 @@ CONTAINS
          CHARN, TWS, BEDFORM(3), PHIBBL,      &
          TAUBBL(2), TAUICE(2), WHITECAP(4),   &
          TAUWIX, TAUWIY, TAUWNX, TAUWNY,      &
-         ICEF, TAUOCX, TAUOCY, WNMEAN
+         ICEF, TAUOCX, TAUOCY, WNMEAN, TAUBK, &
+         TAUWIS, TAUAFS
     REAL, INTENT(OUT)       :: DTDYN, FCUT
     REAL, INTENT(IN)        :: COEF
     !/
@@ -994,6 +1000,9 @@ CONTAINS
     DLWMEAN= 0.
     BRLAMBDA(:)=0.
     WHITECAP(:)=0.
+    TAUBK     = 0.
+    TAUWIS    = 0.
+    TAUAFS    = 0.
 #endif
     !
     ! 1.c Set mean parameters
@@ -1264,8 +1273,8 @@ CONTAINS
            USTAR, USTDIR, DEPTH, VSDS, VDDS, IX, IY )
 #endif
 #ifdef W3_ST4
-      CALL W3SDS4 ( SPEC, WN1, CG1, USTAR, USTDIR, DEPTH, DAIR, VSDS,   &
-           VDDS, IX, IY, BRLAMBDA, WHITECAP, DLWMEAN )
+      CALL W3SDS4 ( SPEC, WN1, CG1, U10ABS, USTAR, USTDIR, DEPTH, Z0, DAIR, VSDS,   &
+           VDDS, IX, IY, BRLAMBDA, WHITECAP, DLWMEAN, TAUBK, TAUWIS, TAUAFS )
 #endif
 #if defined(W3_DEBUGSRC) && defined(W3_ST4)
       IF (IX == DEBUG_NODE) THEN

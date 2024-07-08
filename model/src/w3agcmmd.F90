@@ -127,7 +127,7 @@ CONTAINS
     !
     USE W3OACPMD,  ONLY: ID_OASIS_TIME, IL_NB_SND, SND_FLD, CPL_OASIS_SND
     USE W3GDATMD,  ONLY: NSEAL, NSEA
-    USE W3ADATMD,  ONLY: CX, CY, CHARN, HS, FP0, TWS
+    USE W3ADATMD,  ONLY: CX, CY, CHARN, HS, FP0, TWS, TAUBK
     USE W3ODATMD,  ONLY: UNDEF, NAPROC, IAPROC
     !
     !/ ------------------------------------------------------------------- /
@@ -209,6 +209,15 @@ CONTAINS
       IF (SND_FLD(IB_DO)%CL_FIELD_NAME == 'WW3__FWS') THEN
         TMP(1:NSEAL) = 0.0
         WHERE(TWS(1:NSEAL) /= UNDEF) TMP(1:NSEAL)=TWS(1:NSEAL)
+            RLA_OASIS_SND(:,1) = DBLE(TMP(1:NSEAL))
+            CALL CPL_OASIS_SND(IB_DO, ID_OASIS_TIME, RLA_OASIS_SND, LL_ACTION)
+      ENDIF
+      !
+      ! Wind-wave breaking stress (m2 s-2)
+      ! ---------------------------------------------------------------------
+      IF (SND_FLD(IB_DO)%CL_FIELD_NAME == 'WW3__TAB') THEN
+        TMP(1:NSEAL) = 0.0
+        WHERE(TAUBK(1:NSEAL) /= UNDEF) TMP(1:NSEAL)=TAUBK(1:NSEAL)
         RLA_OASIS_SND(:,1) = DBLE(TMP(1:NSEAL))
         CALL CPL_OASIS_SND(IB_DO, ID_OASIS_TIME, RLA_OASIS_SND, LL_ACTION)
       ENDIF

@@ -3457,6 +3457,33 @@ CONTAINS
     META(1)%VARND=''
     META(1)%VMIN = 0
     META(1)%VMAX = 64
+    ! IFI=5, IFJ=12, TAB
+    META => GROUP(5)%FIELD(12)%META
+    ! First component
+    META(1)%FSC    = 0.1
+    META(1)%UNITS  = 'm2 s-2'
+    META(1)%ENAME  = '.tab'
+    META(1)%VARNM='taubk'
+    META(1)%VARNL='total wind stress including breaking'
+    META(1)%VARNS=''
+    META(1)%VARNG='total_wind_stress_including_breaking'
+    META(1)%VARND=DIRCOM
+    META(1)%VMIN = 0.0
+    META(1)%VMAX = 10.0
+    !
+    ! Second component
+    META(2) = META(1)
+    META(2)%VARNM='tauwis'
+    META(2)%VARNL='wave induced stress'
+    !META(2)%VARNS='northward_wave_supported_wind_stress'
+    META(2)%VARNS=''
+    META(2)%VARNG='wave_induced_stress'
+    ! Third component
+    META(3) = META(1)
+    META(3)%VARNM='tauafs'
+    META(3)%VARNL='air flow separation stress'
+    META(3)%VARNS=''
+    META(3)%VARNG='air_flow_separation_stress'
     !
     !---------- GROUP 6 ----------------
     !

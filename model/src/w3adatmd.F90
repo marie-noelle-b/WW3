@@ -62,7 +62,7 @@ MODULE W3ADATMD
   !/    21-Aug-2018 : Add WBT parameter                   ( version 6.06 )
   !/    22-Mar-2021 : Adds TAUA, WNMEAN, TAUOC parameters ( version 7.13 )
   !/    06-May-2021 : SMC shares variables with PR2/3.    ( version 7.13 )
-  !
+  !/    06-Oct-2020 : Add TAUBK parameter                 ( version 7.XX )!
   !/
   !/    Copyright 2009-2013 National Weather Service (NWS),
   !/       National Oceanic and Atmospheric Administration.  All rights
@@ -156,6 +156,9 @@ MODULE W3ADATMD
   !      PHIAW     R.A.  Public   Wind to wave energy flux.
   !      TAUWIX/Y  R.A.  Public   Wind to wave energy flux.
   !      TAUWNX/Y  R.A.  Public   Wind to wave energy flux.
+  !      TAUBK     R.A.  Public   Wind to wave energy flux. with wave breaking
+  !      TAUWIS    R.A.  Public   Wind to wave energy flux. wave induced stress
+  !      TAUAFS    R.A.  Public   Wind to wave energy flux. air-flow speration stress
   !      WHITECAP  R.A.  Public    1 : Whitecap coverage
   !                                2 : Whitecap thickness
   !                                3 : Mean breaking height
@@ -442,10 +445,12 @@ MODULE W3ADATMD
     !
     REAL, POINTER         ::  CHARN(:),  CGE(:),  PHIAW(:),       &
          TAUWIX(:),  TAUWIY(:),  TAUWNX(:),  &
-         TAUWNY(:),  WHITECAP(:,:), TWS(:)
+         TAUWNY(:),  WHITECAP(:,:), TWS(:),  &
+         TAUBK(:), TAUWIS(:), TAUAFS(:)
     REAL, POINTER         :: XCHARN(:), XCGE(:), XPHIAW(:),       &
          XTAUWIX(:), XTAUWIY(:), XTAUWNX(:),  &
-         XTAUWNY(:), XWHITECAP(:,:), XTWS(:)
+         XTAUWNY(:), XWHITECAP(:,:), XTWS(:), &
+         XTAUBK(:), XTAUWIS(:), XTAUAFS(:)
     !
     ! Output fields group 6)
     !
@@ -602,7 +607,8 @@ MODULE W3ADATMD
   !
   REAL, POINTER           :: CHARN(:), CGE(:), PHIAW(:),          &
        TAUWIX(:), TAUWIY(:), TAUWNX(:),     &
-       TAUWNY(:), WHITECAP(:,:), TWS(:)
+       TAUWNY(:), WHITECAP(:,:), TWS(:),    &
+       TAUBK(:), TAUWIS(:), TAUAFS(:)
   !
   REAL, POINTER           :: SXX(:), SYY(:), SXY(:), TAUOX(:),    &
        TAUOY(:), BHD(:), PHIOC(:),          &
@@ -1167,6 +1173,9 @@ CONTAINS
          WADATS(IMOD)%TAUWNX  (NSEALM),                       &
          WADATS(IMOD)%TAUWNY  (NSEALM),                       &
          WADATS(IMOD)%WHITECAP(NSEALM,4),                     &
+         WADATS(IMOD)%TAUBK   (NSEALM),                       &
+         WADATS(IMOD)%TAUWIS  (NSEALM),                       &
+         WADATS(IMOD)%TAUAFS  (NSEALM),                       &
          STAT=ISTAT )
     CHECK_ALLOC_STATUS ( ISTAT )
     !
@@ -1179,6 +1188,9 @@ CONTAINS
     WADATS(IMOD)%TAUWNX   = UNDEF
     WADATS(IMOD)%TAUWNY   = UNDEF
     WADATS(IMOD)%WHITECAP = UNDEF
+    WADATS(IMOD)%TAUBK    = UNDEF
+    WADATS(IMOD)%TAUWIS   = UNDEF
+    WADATS(IMOD)%TAUAFS   = UNDEF
 
     call print_memcheck(memunit, 'memcheck_____:'//' W3DIMA 5')
     !
@@ -2017,6 +2029,22 @@ CONTAINS
       CHECK_ALLOC_STATUS ( ISTAT )
     END IF
     !
+    IF ( OUTFLAGS( 5, 12) ) THEN
+      ALLOCATE ( WADATS(IMOD)%XTAUBK(NXXX), STAT=ISTAT )
+      CHECK_ALLOC_STATUS ( ISTAT )
+      ALLOCATE ( WADATS(IMOD)%XTAUWIS(NXXX), STAT=ISTAT )
+      CHECK_ALLOC_STATUS ( ISTAT )
+      ALLOCATE ( WADATS(IMOD)%XTAUAFS(NXXX), STAT=ISTAT )
+      CHECK_ALLOC_STATUS ( ISTAT )
+    ELSE
+      ALLOCATE ( WADATS(IMOD)%XTAUBK(1), STAT=ISTAT )
+      CHECK_ALLOC_STATUS ( ISTAT )
+      ALLOCATE ( WADATS(IMOD)%XTAUWIS(1), STAT=ISTAT )
+      CHECK_ALLOC_STATUS ( ISTAT )
+      ALLOCATE ( WADATS(IMOD)%XTAUAFS(1), STAT=ISTAT )
+      CHECK_ALLOC_STATUS ( ISTAT )
+    END IF
+!
     WADATS(IMOD)%XCHARN    = UNDEF
     WADATS(IMOD)%XTWS      = UNDEF
     WADATS(IMOD)%XCGE      = UNDEF
@@ -2026,6 +2054,9 @@ CONTAINS
     WADATS(IMOD)%XTAUWNX   = UNDEF
     WADATS(IMOD)%XTAUWNY   = UNDEF
     WADATS(IMOD)%XWHITECAP = UNDEF
+    WADATS(IMOD)%XTAUBK    = UNDEF
+    WADATS(IMOD)%XTAUWIS   = UNDEF
+    WADATS(IMOD)%XTAUAFS   = UNDEF
     !
     IF ( OUTFLAGS( 6, 1) ) THEN
       ALLOCATE ( WADATS(IMOD)%XSXX(NXXX), STAT=ISTAT )
@@ -2894,6 +2925,9 @@ CONTAINS
       TAUWNX   => WADATS(IMOD)%TAUWNX
       TAUWNY   => WADATS(IMOD)%TAUWNY
       WHITECAP => WADATS(IMOD)%WHITECAP
+      TAUBK    => WADATS(IMOD)%TAUBK
+      TAUWIS   => WADATS(IMOD)%TAUWIS
+      TAUAFS   => WADATS(IMOD)%TAUAFS
       !
       SXX    => WADATS(IMOD)%SXX
       SYY    => WADATS(IMOD)%SYY
@@ -3237,6 +3271,9 @@ CONTAINS
       TAUWNX   => WADATS(IMOD)%XTAUWNX
       TAUWNY   => WADATS(IMOD)%XTAUWNY
       WHITECAP => WADATS(IMOD)%XWHITECAP
+      TAUBK    => WADATS(IMOD)%XTAUBK
+      TAUWIS   => WADATS(IMOD)%XTAUWIS
+      TAUAFS   => WADATS(IMOD)%XTAUAFS
       !
       SXX    => WADATS(IMOD)%XSXX
       SYY    => WADATS(IMOD)%XSYY

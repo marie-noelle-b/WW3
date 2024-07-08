@@ -92,6 +92,7 @@ MODULE W3WAVEMD
   !/    14-Sep-2018 : Remove PALM implementation          ( version 6.06 )
   !/    15-Sep-2020 : Bugfix FIELD allocation. Remove     ( version 7.11 )
   !/                  defunct OMPX switches.
+  !/    06-Oct-2020 : Add TAUBK parameter                 ( version 7.XX )
   !/    22-Mar-2021 : Update TAUA, RHOA                   ( version 7.13 )
   !/    06-May-2021 : Use ARCTC and SMCTYPE options. JGLi ( version 7.13 )
   !/    19-Jul-2021 : Momentum and air density support    ( version 7.14 )
@@ -1544,7 +1545,8 @@ CONTAINS
                  TWS(JSEA), PHIOC(JSEA), TMP1, D50, PSIC, TMP2,     &
                  PHIBBL(JSEA), TMP3, TMP4, PHICE(JSEA),             &
                  TAUOCX(JSEA), TAUOCY(JSEA), WNMEAN(JSEA),          &
-                 RHOAIR(ISEA), ASF(ISEA))
+                   RHOAIR(ISEA), ASF(ISEA)                            &
+                   TAUBK(JSEA), TAUWIS(JSEA), TAUAFS(JSEA))
             IF (.not. LSLOC) THEN
               VSTOT(:,JSEA) = VSioDummy
               VDTOT(:,JSEA) = VDioDummy
@@ -2218,7 +2220,8 @@ CONTAINS
                        TWS(JSEA),PHIOC(JSEA), TMP1, D50, PSIC, TMP2,     &
                        PHIBBL(JSEA), TMP3, TMP4, PHICE(JSEA),            &
                        TAUOCX(JSEA), TAUOCY(JSEA), WNMEAN(JSEA),         &
-                       RHOAIR(ISEA), ASF(ISEA))
+                       RHOAIR(ISEA), ASF(ISEA), TAUBK(JSEA),             &
+                       TAUWIS(JSEA), TAUAFS(JSEA))
                 ELSE
 #endif
                   CALL W3SRCE(srce_direct, IT, ISEA, JSEA, IX, IY, IMOD, &
@@ -2244,7 +2247,8 @@ CONTAINS
                        TWS(JSEA), PHIOC(JSEA), TMP1, D50, PSIC,TMP2,     &
                        PHIBBL(JSEA), TMP3, TMP4 , PHICE(JSEA),           &
                        TAUOCX(JSEA), TAUOCY(JSEA), WNMEAN(JSEA),         &
-                       RHOAIR(ISEA), ASF(ISEA))
+                       RHOAIR(ISEA), ASF(ISEA), TAUBK(JSEA),             &
+                       TAUWIS(JSEA), TAUAFS(JSEA))
 #ifdef W3_PDLIB
                 END IF
 #endif

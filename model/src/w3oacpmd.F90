@@ -1103,6 +1103,11 @@ CONTAINS
         ! Wind_sea_mean_period_T0M1 (s)
         ID_NB_SND=ID_NB_SND+1
         SND(ID_NB_SND)%CL_FIELD_NAME='WW3__FWS'
+        !
+      CASE('TAB')
+        ! Wind-wave breaking stress (m2 s-2)
+        ID_NB_SND=ID_NB_SND+1
+        SND(ID_NB_SND)%CL_FIELD_NAME='WW3__TAB'
 #endif
         !
 
