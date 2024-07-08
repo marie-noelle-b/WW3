@@ -1306,7 +1306,8 @@ CONTAINS
 #endif
 #ifdef W3_ST4
     REAL                    :: AMAX, FMEANS, FMEANWS, TAUWX, TAUWY, &
-         TAUWNX, TAUWNY, FMEAN1, WHITECAP(1:4), DLWMEAN
+             TAUWNX, TAUWNY, FMEAN1, WHITECAP(1:4), DLWMEAN, TAUBK, &
+             TAUWIS, TAUAFS
 #endif
 #ifdef W3_ST6
     REAL                    :: AMAX, TAUWX, TAUWY, TAUWNX, TAUWNY
@@ -2013,8 +2014,9 @@ CONTAINS
                  USTAR, USTD, DEPTH, XDS, DIA, IX, IY )
 #endif
 #ifdef W3_ST4
-            CALL W3SDS4 ( A, WN, CG,  USTAR, USTD, DEPTH, DAIR, XDS, &
-                 DIA, IX, IY, LAMBDA, WHITECAP, DLWMEAN )
+            CALL W3SDS4 ( A, WN, CG, UABS, USTAR, USTD, DEPTH, &
+                 Z0, DAIR, XDS, DIA, IX, IY, LAMBDA, &
+                 WHITECAP, DLWMEAN, TAUBK, TAUWIS, TAUAFS )
 #endif
 #ifdef W3_ST6
             CALL W3SDS6 ( A, CG, WN,            XDS, DIA )
