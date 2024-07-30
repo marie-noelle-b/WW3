@@ -71,6 +71,9 @@ $                           CHAMIN : Minimum Charnock value (CAPCHA=1)
 $                            Z0MAX : maximum value of air-side roughness z0
 $                          BETAMAX : maximum value of wind-wave coupling
 $                           SINTHP : power of cosine in wind input
+$                           SINAFS : accounting for AFS stress in add to 
+$                                     wave-induced stress 
+$                                    (Kudryavtsev et al 2001)
 $                             ZALP : wave age shift to account for gustiness
 $                           SWELLF : swell attenuation factor
 $                      TAUWSHELTER : sheltering of short waves to reduce u_star

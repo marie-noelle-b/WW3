@@ -508,7 +508,7 @@ CONTAINS
          DELAB,ABMIN
     USE W3GDATMD, ONLY: NK, NTH, NSPEC, DDEN, SIG, SIG2, TH,         &
          ESIN, ECOS, EC2, ZZWND, AALPHA, BBETA, ZZALP,&
-         TTAUWSHELTER, SSWELLF, DDEN2, DTH, SSINTHP,  &
+         TTAUWSHELTER, SSWELLF, DDEN2, DTH, SSINTHP, SSINAFS,  &
          ZZ0RAT, SSINBR, SINTAILPAR
 #ifdef W3_S
     USE W3SERVMD, ONLY: STRACE
@@ -580,6 +580,25 @@ CONTAINS
 #endif
     !/
     !/ ------------------------------------------------------------------- /
+   !/-----------------------------------------------------------------------------------------
+    !!!!!!!!!!!!!!!!! Added by R. Fernandes et al TAU AFS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !
+    REAL                    :: ZINN       ! approximate inner region height
+    REAL                    :: UINN       ! approximate wind speed at ZINN
+    REAL                    :: ZCAFS      ! critical layer height for AFS stress calculation
+    REAL                    :: CPHI       ! phase speed of waves
+    REAL                    :: DSTBK(NSPEC)       ! 
+    REAL                    :: WCAPFX     ! whitecap percentage recalculated for fluxes
+    REAL                    :: ZCF        ! height of critical layer
+    REAl                    :: CONST4     ! for integration
+    REAl                    :: FACBK      ! term to integrate
+    REAl                    :: STRESSAFS(2) ! air flow separation stress component (Kudryavtsev al 2001)
+    REAL                    :: UMAXBK=63. ! max wind for parametric whitecap tuning
+    REAL                    :: EPSB=0.5   ! epssilon b in Kudryavtsev et al 2001
+    REAL                    :: TEMPBK     ! integration term for breaking stress
+    REAL                    :: GAMMABK=0.2 ! should be 0.1-1.
+    !/
+    !/ ------------------------------------------------------------------- /
     !/
 #ifdef W3_S
     CALL STRACE (IENT, 'W3SIN4')
@@ -597,6 +616,8 @@ CONTAINS
     DSTAB =0.
     STRESSSTAB =0.
     STRESSSTABN =0.
+    DSTBK = 0.
+    STRESSAFS = 0.
     !
     ! Coupling coefficient times density ratio DRAT
     !
@@ -706,6 +727,16 @@ CONTAINS
       !
       STRESSSTAB(ISTAB,:)=0.
       STRESSSTABN(ISTAB,:)=0.
+!! RF 
+      STRESSAFS(:)=0.
+      WCAPFX = 0.
+      IF (SSINAFS .GT. 0.) THEN
+         WCAPFX = (TANH(2.*U/UMAXBK))**2.5
+         IF (WCAPFX .GT. 1.) THEN
+            WCAPFX=1.
+         ENDIF
+      ENDIF
+!! RF
       !
       DO IK=1, NK
         TAUPX=TAUX-ABS(TTAUWSHELTER)*STRESSSTAB(ISTAB,1)
@@ -722,6 +753,20 @@ CONTAINS
         ! rho_a, and thus comparable to USTAR**2
         ! it is the integral of rho_w g Sin/C /rho_a
         ! (air-> waves momentum flux)
+!! RF
+        CPHI   = SIG2(IS)/K(IK)  !! wave phase speed
+        ZINN   = SQRT(0.5)/K(IK) !! inner layer
+        UINN   = U*(ZINN/10.)**0.11 !! wind speed at inner height
+        ZCF = KAPPA/ UCN
+        IF (ZCF .LT. 8.) THEN
+             ZCAFS     = Z0*EXP(ZCF)
+        ELSE
+             ZCF = 8.0 
+             ZCAFS     = Z0*EXP(ZCF)
+        ENDIF
+        FACBK = (EPSB*GAMMABK/KAPPA**2)*(USTP**2)*(LOG(EPSB/(K(IK)*ZCAFS))**2)
+        CONST4 = DDEN(IK)/(SIG(IK)*CG(IK))
+!! RF
         CONST2=DDEN2(IS)/CG(IK) &        !Jacobian to get energy in band
              *GRAV/(SIG(IK)/K(IS)*DRAT) ! coefficient to get momentum
         CONST=SIG2(IS)*CONST0
@@ -751,13 +796,22 @@ CONTAINS
               ! as given by Janssen 1991 eq. 19
               ! Note that this is slightly diffent from ECWAM code CY45R2 where ZLOG is replaced by ??
               DSTAB(ISTAB,IS) = CONST*EXP(ZLOG)*ZLOG**4*UCN*UCN*COSWIND**SSINTHP
-
+    
               ! Below is an example with breaking probability feeding back to the input...
               !DSTAB(ISTAB,IS) = CONST*EXP(ZLOG)*ZLOG**4  &
               !                  *UCN*UCN*COSWIND**SSINTHP *(1+BRLAMBDA(IS)*20*SSINBR)
+!! RF
+              DSTBK(IS)=0.
+              IF ( CPHI .LE. UINN ) THEN
+                DSTBK(IS) = BRLAMBDA(IS) * COSWIND
+              END IF
+!! RF
               LLWS(IS)=.TRUE.
             ELSE
               DSTAB(ISTAB,IS) = 0.
+!! RF
+              DSTBK(IS) = 0.
+!! RF
               LLWS(IS)=.FALSE.
             END IF
             !
@@ -768,6 +822,9 @@ CONTAINS
             END IF
           ELSE  ! (COSWIND.LE.0.01)
             DSTAB(ISTAB,IS) = 0.
+!! RF
+            DSTBK(IS) = 0.
+!! RF    
             LLWS(IS)=.FALSE.
           END IF
           !
@@ -785,6 +842,7 @@ CONTAINS
           ! Wave direction is "direction to"
           ! therefore there is a PLUS sign for the stress
           TEMP2=CONST2*DSTAB(ISTAB,IS)*A(IS)
+          TEMPBK = CONST4*DSTBK(IS)*FACBK
           IF (DSTAB(ISTAB,IS).LT.0) THEN
             STRESSSTABN(ISTAB,1)=STRESSSTABN(ISTAB,1)+TEMP2*ECOS(IS)
             STRESSSTABN(ISTAB,2)=STRESSSTABN(ISTAB,2)+TEMP2*ESIN(IS)
@@ -792,12 +850,18 @@ CONTAINS
             STRESSSTAB(ISTAB,1)=STRESSSTAB(ISTAB,1)+TEMP2*ECOS(IS)
             STRESSSTAB(ISTAB,2)=STRESSSTAB(ISTAB,2)+TEMP2*ESIN(IS)
           END IF
+!! RF
+          STRESSAFS(1)=STRESSAFS(1)+TEMPBK*ECOS(IS)
+          STRESSAFS(2)=STRESSAFS(2)+TEMPBK*ESIN(IS)
+!! RF
         END DO
       END DO
       !
+!! RF
       D(:)=DSTAB(3,:)
-      XSTRESS=STRESSSTAB (3,1)
-      YSTRESS=STRESSSTAB (3,2)
+      XSTRESS=MAX(0.,(1.-WCAPFX)*STRESSSTAB (3,1) + WCAPFX * STRESSAFS(1))
+      YSTRESS=MAX(0.,(1.-WCAPFX)*STRESSSTAB (3,2) + WCAPFX * STRESSAFS(2))
+!! RF
       TAUWNX =STRESSSTABN(3,1)
       TAUWNY =STRESSSTABN(3,2)
 #ifdef W3_STAB3
@@ -809,7 +873,9 @@ CONTAINS
     TAUWNY=0.5*(STRESSSTABN(1,2)+STRESSSTABN(2,2))
 #endif
 #ifdef W3_T
-    WRITE (NDST,9002) SUM(D), SUM(A), XSTRESS, YSTRESS, TAUWNX, TAUWNY
+    WRITE (NDST,9002) SUM(D), SUM(A), XSTRESS, YSTRESS, TAUWNX, TAUWNY,& 
+               STRESSSTAB (3,1), STRESSSTAB (3,2), STRESSAFS(1), STRESSAFS(2), WCAPFX
+!!    WRITE (NDST,9002) SUM(D), SUM(A), XSTRESS, YSTRESS, TAUWNX, TAUWNY
 #endif
     S = D * A
     !
@@ -987,7 +1053,12 @@ CONTAINS
              '               STRESSX    :',E12.3/                 &
              '               STRESSY    :',E12.3/                 &
              '               TAUWNX     :',E12.3/                 &
-             '               TAUWNY     :',E12.3)
+             '               TAUWNY     :',E12.3/                 &
+             '               STRESSTAB1 :',E12.3/                 &
+             '               STRESSTAB2 :',E12.3/                 &
+             '               STRESSAFS1 :',E12.3/                 &
+             '               STRESSAFS2 :',E12.3/                 &
+             '               WCAPFX     :',E12.3) 
 9003 FORMAT (' TEST W3SIN4 : AS         :',F8.4/                  &
              '               Usigma     :',E12.3/                 &
              '               USTARsigma :',E12.3/                 &
@@ -2030,8 +2101,7 @@ CONTAINS
   !> @date   13-Aug-2021
   !>
   SUBROUTINE W3SDS4 (A, K, CG, U, USTAR, USDIR, DEPTH, Z0, DAIR, SRHS,    &
-       DDIAG, IX, IY, BRLAMBDA, WHITECAP, DLWMEAN, &
-       TAUBK, TAUWIS, TAUAFS )
+       DDIAG, IX, IY, BRLAMBDA, WHITECAP, DLWMEAN) 
     !/
     !/                  +-----------------------------------+
     !/                  | WAVEWATCH III           NOAA/NCEP |
@@ -2045,7 +2115,6 @@ CONTAINS
     !/    13-Nov-2013 : Reduced frequency range with IG1 switch
     !/    06-Jun-2018 : Add optional DEBUGSRC              ( version 6.04 )
     !/    22-Feb-2020 : Option to use Romero (GRL 2019)    ( version 7.06 )
-    !/    08-Dec-2020 : Wave breaking flux R. Fernandes 
     !/    13-Aug-2021 : Consider DAIR a variable           ( version 7.14 )
     !/    01-Mar-2023 : Clean up of SDS4                   ( version 7.xx )
     !/
@@ -2077,9 +2146,6 @@ CONTAINS
     !       S         R.A.  O   Source term (1-D version).
     !       D         R.A.  O   Diagonal term of derivative.             *)
     !       BRLAMBDA  R.A.  O   Phillips' Lambdas
-    !       TAUBK     Real  O   Total wave breaking stress - sum of wave induced and air-flow separation stresses (R. Fernandes 2020)
-    !       TAUWIS    Real  O   wave induced stress
-    !       TAUAFS    Real  O   air-flow separation stress
     !     ----------------------------------------------------------------
     !                         *) Stored in 1-D array with dimension NTH*NK
     !
@@ -2150,7 +2216,6 @@ CONTAINS
                                  U, Z0 
     REAL, INTENT(OUT)       :: SRHS(NSPEC), DDIAG(NSPEC), BRLAMBDA(NSPEC)
     REAL, INTENT(OUT)       :: WHITECAP(1:4)
-    REAL, INTENT(OUT)       :: TAUBK,TAUWIS,TAUAFS
     !/
     !/ ------------------------------------------------------------------- /
     !/ Local parameters
@@ -2188,20 +2253,6 @@ CONTAINS
     REAL                    :: TSTR, TMAX, DT, T, MFT, DIRFORCUM
     REAL                    :: PB(NSPEC), PB2(NSPEC), BRM12(NK), BTOVER
     REAL                    :: KO, LMODULATION(NTH)
-    !/-----------------------------------------------------------------------------------------
-    !!!!!!!!!!!!!!!!! Added by R. Fernandes et al (2020) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !
-    REAL                    :: ZINN       ! approximate inner region height
-    REAL                    :: UINN       ! approximate wind speed at ZINN
-    REAL                    :: ZCAFS      ! critical layer height for AFS stress calculation, Kudryetsev et Makin (2001)
-    REAL                    :: CPHI       ! phase speed of waves
-    REAL                    :: BETAK      ! wind growth rate
-    REAL                    :: BK         ! saturation spectrum
-    REAL                    :: WCAPFX     ! whitecap percentage recalculated for fluxes
-    REAL                    :: LBDC
-    REAL                    :: FCTR
-    REAL                    :: ZCF
-    !/
     !/ ------------------------------------------------------------------- /
     !/
 #ifdef W3_S
@@ -2663,109 +2714,6 @@ CONTAINS
         WHITECAP(2) = WHITECAP(2) + COEF4(IK) * MFT
       END DO
     END IF
-!----------------------------------------------------------------------------------------------------------------------------------------
-! 2d   WAVE BREAKING flux calcul R. Fernandes et al. (2020) for coupled model: tau_wis and tau_afs (wave breaking and air-flow separation stresses) 
-!      Note: the module sends TAUBK to the atmospheric model. 
-!      Date: 28/09/2020
-!----------------------------------------------------------------------------------------------------------------------------------------
-!
-!/ Local parameters
-!
-!      REAL                    :: ZINN       ! approximate inner region height
-!      REAL                    :: UINN       ! approximate wind speed at ZINN
-!      REAL                    :: ZCAFS      ! critical layer height for AFS stress calculation, Kudryetsev et Makin (2001)
-!      REAL                    :: CPHI       ! phase speed of waves
-!      REAL                    :: BETAK      ! wind growth rate
-!      REAL                    :: BK         ! saturation spectrum
-!      REAL                    :: TAUWIS     ! wave induced stress
-!      REAL                    :: TAUAFS     ! air-flow separation stress
-!      REAL                    :: WCAPFX     ! whitecap percentage recalculated for fluxes
-
-! 
- 
-!----------------------------------------------------------------------------
-!
-        ZCF  =0.
-        ZCAFS =0.
-        BETAK = 0.
-        BK    = 0.
-        TAUWIS = 0.
-        TAUAFS = 0.
-        WCAPFX = 0.
-        TAUBK = 0.
-
-     DO IK=1, NK
-
-        IS0=(IK-1)*NTH
-        CPHI   = SIG(IK)/K(IK)  
-        ZINN   = sqrt(0.5)/K(IK)
-        UINN   = U*(ZINN/10)**0.11 
-
-        IF ( CPHI .LE. UINN ) THEN !! limitting condition for fast moving waves Kudryetsev et al (2014)
-           BETAK = (5/(USTAR))*((USTAR/CPHI)**2)*(COS(DLWMEAN-USDIR))**2  !! wind growth rate parameter Kudryatsev et al (2001) 
-!!            BETAK = (5/(USTAR))*((USTAR/CPHI)**2)  !! wind growth rate parameter Kudryatsev et al (2001) 
-           BK    = BTH0(IK)
-           ZCF   = KAPPA*CPHI/(USTAR*ABS(COS(ABS(DLWMEAN))))
-!!           ZCF   = KAPPA*CPHI/(USTAR*1)
-           IF (ZCF .LT. 8) THEN
-             ZCAFS     = Z0*EXP(ZCF)
-           ELSE
-             ZCF = 8.0
-             ZCAFS     = Z0*EXP(ZCF)
-           ENDIF
-        ELSE
-           BETAK  = 0.
-           BK     = 0.
-           ZCAFS  = 0.
-        ENDIF
-
-
-    IF (U .GT. 10) THEN
-        TAUWIS   = TAUWIS + 6.0E-5*(DWAT/DAIR)*ABS(COS(DLWMEAN-USDIR))*BETAK*BK*SIG(IK)**2/K(IK)**4   ! Kudryatsev et al 2014
-        ! for testing 
-        !!TAUWIS   = TAUWIS + 6.0E-5*(DWAT/DAIR)*ABS(1)*BETAK*BK*SIG(IK)**2/K(IK)**4  
-    ELSE
-        TAUWIS   = TAUWIS + 0.5E-5*(DWAT/DAIR)*ABS(COS(DLWMEAN-USDIR))*BETAK*BK*SIG(IK)**2/K(IK)**4
-        ! for testing
-        !!TAUWIS   = TAUWIS + 0.5E-5*(DWAT/DAIR)*ABS(1)*BETAK*BK*SIG(IK)**2/K(IK)**4
-    ENDIF
-
-    IF ( CPHI .LE. UINN ) THEN
-       TAUAFS = TAUAFS + (0.6E-4)*2*(0.5*1/KAPPA**2)*((USTAR)**2)*LOG(0.5/(K(IK)*ZCAFS)) &
-               *LOG(0.5/(K(IK)*ZCAFS))*(ABS(COS(DLWMEAN-USDIR)))**3*BETAK*BK/(2.8E-3*K(IK)*CPHI)    ! Kudryatsev et al 2014  
-       !!   TAUAFS = TAUAFS + (0.6E-4)*2*(0.5*1/KAPPA**2)*((USTAR)**2)*LOG(0.5/(K(IK)*ZCAFS)) &
-         !!       *LOG(0.5/(K(IK)*ZCAFS))*(ABS(1))**3*BETAK*BK/(2.8E-3*K(IK)*CPHI) 
-    ELSE
-        TAUAFS = TAUAFS + 0.
-    ENDIF 
-
-!    IF ( CPHI .LE. UINN ) THEN
-!        TAUAFS = TAUAFS + (0.6E-4)*2*(0.5*1/KAPPA**2)*((USTAR)**2)*LOG(0.5/(K(IK)*1)) &
-!               *LOG(0.5/(K(IK)*1))*BETAK*BK/(2.8E-3*K(IK)*CPHI)    ! Kudryatsev et al 2014  
-!    ELSE
-!        TAUAFS = TAUAFS + 0.
-!    ENDIF 
-
-    END DO
-
-  WCAPFX = (TANH(2*U/63))**2.5
-
-        IF (WCAPFX .GT. 1) THEN
-           WCAPFX=1
-        ENDIF
-
-    TAUBK = (1-WCAPFX)*TAUWIS + WCAPFX*TAUAFS  !! Wind-wave stress by R. Fernandes et al 2020 to be sent to atmospheric model
-
-! print*, U, TAUBK
- 
- IF (TAUBK .LT. 0) THEN
-    TAUBK = 0.
- ENDIF
-
-!........................................................................................................................................................
-! 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! END OF MODIF BY R Fernandes
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !
     ! End of output computing

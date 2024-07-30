@@ -2434,7 +2434,6 @@ CONTAINS
     !/    01-Mar-2018 : Removed RTD code (now used in post  ( version 6.02 )
     !/                  processing code)
     !/    25-Aug-2018 : Add WBT parameter                   ( version 6.06 )
-    !/    06-Oct-2020 : Add TAUBK parameter                 ( version 7.XX )
     !/    22-Mar-2021 : Add extra coupling fields as output ( version 7.13 )
     !/    07-Mar-2024 : Add Skewness parameters             ( version 7.13 )
     !/
@@ -2529,7 +2528,7 @@ CONTAINS
          PHIAW, PHIOC, TUSX, TUSY, PRMS, TPMS,        &
          USSX, USSY, MSSX, MSSY, MSSD, MSCX, MSCY,    &
          MSCD, QP, TAUWNX, TAUWNY, CHARN, TWS, BHD,   &
-         PHIBBL, TAUBBL, WHITECAP, TAUBK, TAUWIS, TAUAFS, & 
+         PHIBBL, TAUBBL, WHITECAP,                    & 
          BEDFORMS, CGE, EF,                           &
          CFLXYMAX, CFLTHMAX, CFLKMAX, P2SMS, US3D,    &
          TH1M, STH1M, TH2M, STH2M, HSIG, PHICE, TAUICE,&
@@ -2887,11 +2886,6 @@ CONTAINS
           IF ( FLOGRD( 5, 9) ) WHITECAP(ISEA,3) = UNDEF
           IF ( FLOGRD( 5,10) ) WHITECAP(ISEA,4) = UNDEF
           IF ( FLOGRD( 5,11) ) TWS(ISEA)        = UNDEF
-          IF ( FLOGRD( 5,12) ) THEN
-            TAUBK(ISEA)      = UNDEF
-            TAUWIS(ISEA)     = UNDEF
-            TAUAFS(ISEA)     = UNDEF
-          END IF
           !
           IF ( FLOGRD( 6, 1) ) THEN
             SXX   (ISEA) = UNDEF
@@ -2978,11 +2972,6 @@ CONTAINS
           IF ( FLOGRD( 5, 9) ) WHITECAP(ISEA,3) = UNDEF
           IF ( FLOGRD( 5,10) ) WHITECAP(ISEA,4) = UNDEF
           IF ( FLOGRD( 5,11) ) TWS(ISEA) = UNDEF
-          IF ( FLOGRD( 5,12) ) THEN
-                           TAUBK(ISEA) = UNDEF
-                           TAUWIS(ISEA) = UNDEF
-                           TAUAFS(ISEA) = UNDEF
-          END IF
           !
           IF ( FLOGRD( 6, 2) )THEN
             TAUOX (ISEA) = UNDEF
@@ -3431,19 +3420,6 @@ CONTAINS
               WRITE ( NDSOG ) TWS(1:NSEA)
 #ifdef W3_ASCII
               WRITE ( NDSOA,* ) 'TWS:', TWS(1:NSEA)
-#endif
-            ELSE IF ( IFI .EQ. 5 .AND. IFJ .EQ. 12 ) THEN
-              WRITE ( NDSOG ) TAUBK(1:NSEA)
-#ifdef W3_ASCII
-              WRITE ( NDSOA,* ) 'TAUBK:', TAUBK(1:NSEA)
-#endif
-              WRITE ( NDSOG ) TAUWIS(1:NSEA)
-#ifdef W3_ASCII
-              WRITE ( NDSOA,* ) 'TAUWIS:', TAUWIS(1:NSEA)
-#endif
-              WRITE ( NDSOG ) TAUAFS(1:NSEA)
-#ifdef W3_ASCII
-              WRITE ( NDSOA,* ) 'TAUAFS:', TAUAFS(1:NSEA)
 #endif
               !
               !     Section 6)
@@ -3924,10 +3900,6 @@ CONTAINS
             ELSE IF ( IFI .EQ. 5 .AND. IFJ .EQ. 11 ) THEN
               READ (NDSOG,END=801,ERR=802,IOSTAT=IERR)         &
                    TWS(1:NSEA)
-            ELSE IF ( IFI .EQ. 5 .AND. IFJ .EQ. 12 ) THEN
-              READ (NDSOG,END=801,ERR=802,IOSTAT=IERR) TAUBK(1:NSEA)
-              READ (NDSOG,END=801,ERR=802,IOSTAT=IERR) TAUWIS(1:NSEA)
-              READ (NDSOG,END=801,ERR=802,IOSTAT=IERR) TAUAFS(1:NSEA)
               !
               !     Section 6)
               !

@@ -401,6 +401,8 @@ MODULE W3GDATMD
   !      ZZ0RAT    Real  Public   ratio of roughness for mean and
   !                               oscillatory flows
   !      SSINTHP   Real  Public   Power in cosine of wind input
+  !      SSINAFS   Real  Public   weight between wave induced / air-flow 
+  !                               sep stress (Kudryavtsev et al 2001)
   !      SSWELLF   R.A.  Public   Swell damping coefficients
   !      SSDSCn    Real  Public   Dissipation parameters
   !      SSDSBR    Real  Public   Threshold in saturation spectrum for Sds
@@ -902,7 +904,7 @@ MODULE W3GDATMD
     INTEGER,  POINTER     :: IKTAB(:,:), SATINDICES(:,:)
     REAL,     POINTER     :: DCKI(:,:), SATWEIGHTS(:,:),CUMULW(:,:),QBI(:,:)
     REAL                  :: AALPHA, BBETA, ZZ0MAX, ZZ0RAT, ZZALP,&
-         SSINTHP, TTAUWSHELTER, SSWELLF(1:7), &
+         SSINTHP, SSINAFS, TTAUWSHELTER, SSWELLF(1:7), &
          SSDSC(1:21), SSDSBR, SINTAILPAR(1:5),&
          SSDSP, WWNMEANP, SSTXFTF, SSTXFTWN,  &
          FFXPM, FFXFM, FFXFA,   &
@@ -1325,7 +1327,7 @@ MODULE W3GDATMD
        ZZALP, FFXFA,          &
        FFXFM, FFXPM, SSDSBRF1, SSDSBRF2,    &
        SSDSBINT, SSDSBCK, SSDSHCK, SSDSABK, &
-       SSDSPBK, SSINBR,SSINTHP,TTAUWSHELTER,&
+       SSDSPBK, SSINBR,SSINTHP,SSINAFS, TTAUWSHELTER,&
        SINTAILPAR(:), SSWELLF(:), SSDSC(:), SSDSBR,        &
        SSDSP, WWNMEANP, SSTXFTF, SSTXFTWN,  &
        SSDSBT, SSDSCOS, SSDSDTH, SSDSBM(:), &
@@ -2665,6 +2667,7 @@ CONTAINS
     AALPHA   => MPARS(IMOD)%SRCPS%AALPHA
     BBETA    => MPARS(IMOD)%SRCPS%BBETA
     SSINTHP  => MPARS(IMOD)%SRCPS%SSINTHP
+    SSINAFS  => MPARS(IMOD)%SRCPS%SSINAFS
     ZZ0MAX   => MPARS(IMOD)%SRCPS%ZZ0MAX
     ZZ0RAT   => MPARS(IMOD)%SRCPS%ZZ0RAT
     ZZALP    => MPARS(IMOD)%SRCPS%ZZALP

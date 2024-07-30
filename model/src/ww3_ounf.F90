@@ -194,7 +194,7 @@ PROGRAM W3OUNF
        CFLTHMAX, CFLXYMAX, CFLKMAX, TAUICE, PHICE,  &
        STMAXE, STMAXD, HMAXE, HCMAXE, HMAXD, HCMAXD,&
        P2SMS, EF, US3D, TH1M, STH1M, TH2M, STH2M,   &
-       WN, USSP, WBT, WNMEAN, TAUBK, TAUWIS, TAUAFS,&
+       WN, USSP, WBT, WNMEAN,                       &
        QKK, SKEW, EMBIA1, EMBIA2
   USE W3ODATMD, ONLY: NDSO, NDSE, SCREEN, NOGRP, NGRPP, IDOUT,     &
        UNDEF, FLOGRD, FNMPRE, NOSWLL, NOGE
@@ -1665,13 +1665,6 @@ CONTAINS
             ! Wind sea mean period T0M1
           ELSE IF ( IFI .EQ. 5 .AND. IFJ .EQ. 11 ) THEN
             CALL S2GRID(TWS(1:NSEA), X1)
-            !
-            ! Wave support wind stress with breaking
-          ELSE IF ( IFI .EQ. 5 .AND. IFJ .EQ. 12 ) THEN
-            CALL S2GRID(TAUBK(1:NSEA), X1)
-            CALL S2GRID(TAUWIS(1:NSEA), X2)
-            CALL S2GRID(TAUAFS(1:NSEA), XY)
-            NFIELD=3
             !
             ! Radiation stress
           ELSE IF ( IFI .EQ. 6 .AND. IFJ .EQ. 1 ) THEN

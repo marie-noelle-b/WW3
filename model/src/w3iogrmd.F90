@@ -1498,8 +1498,8 @@ CONTAINS
     IF ( WRITE ) THEN
       CALL INSIN4(.TRUE.)
       WRITE (NDSM)                                           &
-           ZZWND, AALPHA, ZZ0MAX, BBETA, SSINTHP, ZZALP,     &
-           TTAUWSHELTER, SSWELLFPAR, SSWELLF, SSINBR,        &
+           ZZWND, AALPHA, ZZ0MAX, BBETA, SSINTHP, SSINAFS,   &
+           ZZALP, TTAUWSHELTER, SSWELLFPAR, SSWELLF, SSINBR, &
            ZZ0RAT, SSDSC,                                    &
            SSDSISO, SSDSBR, SSDSBT, SSDSBM, SSDSP,           &
            SSDSCOS, SSDSDTH, WWNMEANP, WWNMEANPTAIL,SSTXFTF, &
@@ -1511,8 +1511,8 @@ CONTAINS
            DIKCUMUL, CUMULW, SINTAILPAR, CAPCHNK
 #ifdef W3_ASCII
       WRITE (NDSA,*)                                         &
-           'ZZWND, AALPHA, ZZ0MAX, BBETA, SSINTHP, ZZALP,    &
-           TTAUWSHELTER, SSWELLFPAR, SSWELLF, SSINBR,        &
+           'ZZWND, AALPHA, ZZ0MAX, BBETA, SSINTHP, SSINAFS,  &
+           ZZALP, TTAUWSHELTER, SSWELLFPAR, SSWELLF, SSINBR, &
            ZZ0RAT, SSDSC,                                    &
            SSDSISO, SSDSBR, SSDSBT, SSDSBM, SSDSP,           &
            SSDSCOS, SSDSDTH, WWNMEANP, WWNMEANPTAIL,SSTXFTF, &
@@ -1522,8 +1522,8 @@ CONTAINS
            SSDSHCK,                                          &
            IKTAB, DCKI, QBI, SATINDICES, SATWEIGHTS,         &
            DIKCUMUL, CUMULW, SINTAILPAR, CAPCHNK:',          &
-           ZZWND, AALPHA, ZZ0MAX, BBETA, SSINTHP, ZZALP,     &
-           TTAUWSHELTER, SSWELLFPAR, SSWELLF, SSINBR,        &
+           ZZWND, AALPHA, ZZ0MAX, BBETA, SSINTHP, SSINAFS,   &
+           ZZALP, TTAUWSHELTER, SSWELLFPAR, SSWELLF, SSINBR, &
            ZZ0RAT, SSDSC,                                    &
            SSDSISO, SSDSBR, SSDSBT, SSDSBM, SSDSP,           &
            SSDSCOS, SSDSDTH, WWNMEANP, WWNMEANPTAIL,SSTXFTF, &
@@ -1548,8 +1548,8 @@ CONTAINS
       END IF
     ELSE
       READ (NDSM,END=801,ERR=802,IOSTAT=IERR)                &
-           ZZWND, AALPHA, ZZ0MAX, BBETA, SSINTHP, ZZALP,     &
-           TTAUWSHELTER, SSWELLFPAR, SSWELLF, SSINBR,        &
+           ZZWND, AALPHA, ZZ0MAX, BBETA, SSINTHP, SSINAFS,   &
+           ZZALP, TTAUWSHELTER, SSWELLFPAR, SSWELLF, SSINBR, &
            ZZ0RAT, SSDSC,                                    &
            SSDSISO, SSDSBR, SSDSBT, SSDSBM, SSDSP,           &
            SSDSCOS, SSDSDTH, WWNMEANP, WWNMEANPTAIL,SSTXFTF, &

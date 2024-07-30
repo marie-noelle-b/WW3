@@ -836,7 +836,7 @@ MODULE W3GRIDMD
 #endif
 #ifdef W3_ST3
   REAL                    :: ZWND, ALPHA0, Z0MAX, BETAMAX, SINTHP,&
-       ZALP, SWELLF, FXPM3, FXFM3,          &
+       ZALP, SWELLF, FXPM3, FXFM3,                                &
        WNMEANPTAIL, WNMEANP, STXFTF, STXFTWN
   REAL                    :: STXFTFTAIL, SDSC1,                   &
        SDSDELTA1, SDSDELTA2
@@ -845,9 +845,9 @@ MODULE W3GRIDMD
 #ifdef W3_ST4
   INTEGER                 :: SWELLFPAR, SDSISO, SDSBRFDF, SINTABLE,&
                              TAUWBUG
-  REAL 		   :: SDSBCHOICE
+  REAL                    :: SDSBCHOICE
   REAL                    :: ZWND, ALPHA0, Z0MAX, BETAMAX, SINTHP,&
-       ZALP, Z0RAT, TAUWSHELTER, SWELLF,    &
+       SINAFS, ZALP, Z0RAT, TAUWSHELTER, SWELLF,    &
        SWELLF2,SWELLF3,SWELLF4, SWELLF5,    &
        SWELLF6, SWELLF7, FXPM3, FXFM3,      &
        WNMEANPTAIL, WNMEANP, STXFTF, STXFTFTAIL,       &
@@ -1002,7 +1002,7 @@ MODULE W3GRIDMD
        SWELLF
 #endif
 #ifdef W3_ST4
-  NAMELIST /SIN4/ ZWND, ALPHA0, Z0MAX, BETAMAX, SINTHP, ZALP, &
+  NAMELIST /SIN4/ ZWND, ALPHA0, Z0MAX, BETAMAX, SINTHP, SINAFS, ZALP, &
        TAUWSHELTER, SWELLFPAR, SWELLF,                 &
        SWELLF2, SWELLF3, SWELLF4, SWELLF5, SWELLF6,    &
        SWELLF7, Z0RAT, SINBR, SINTABLE, SINTAIL1, SINTAIL2, TAUWBUG, VISCSTRESS, &
@@ -1716,6 +1716,7 @@ CONTAINS
     Z0RAT = 0.04
     BETAMAX   = 1.43
     SINTHP    = 2.
+    SINAFS    = 0.
     SWELLF    = 0.66
     SWELLFPAR = 1
     SWELLF2 = -0.018
@@ -1801,7 +1802,7 @@ CONTAINS
 #ifdef W3_ST4
     CALL READNL ( NDSS, 'SIN4', STATUS )
     WRITE (NDSO,920) STATUS
-    WRITE (NDSO,921) ALPHA0, BETAMAX, SINTHP, Z0MAX, ZALP, ZWND, TAUWSHELTER, &
+    WRITE (NDSO,921) ALPHA0, BETAMAX, SINTHP, SINAFS, Z0MAX, ZALP, ZWND, TAUWSHELTER, &
          SWELLFPAR, SWELLF, SWELLF2, SWELLF3, SWELLF4, SWELLF5, &
          SWELLF6, SWELLF7, Z0RAT
     ZZWND  = ZWND
@@ -1809,6 +1810,7 @@ CONTAINS
     BBETA  = BETAMAX
     SSINBR  = SINBR
     SSINTHP  = SINTHP
+    SSINAFS = SINAFS
     ZZ0MAX  = Z0MAX
     ZZ0RAT  = Z0RAT
     ZZALP  = ZALP
@@ -3230,7 +3232,7 @@ CONTAINS
            SWELLF
 #endif
 #ifdef W3_ST4
-      WRITE (NDSO,2920) ZWND, ALPHA0, Z0MAX, BETAMAX, SINTHP, ZALP,   &
+      WRITE (NDSO,2920) ZWND, ALPHA0, Z0MAX, BETAMAX, SINTHP, SINAFS, ZALP,   &
            TAUWSHELTER, SWELLFPAR, SWELLF, SWELLF2, SWELLF3, SWELLF4, &
            SWELLF5, SWELLF6, SWELLF7, Z0RAT, SINBR, SINTABLE, TAUWBUG, VISCSTRESS, SINTAIL1, SINTAIL2, &
            CAPCHA, CHAMIN, CHA0, UCAP, SIGMAUCAP
@@ -6262,6 +6264,7 @@ CONTAINS
 921 FORMAT ( '       minimum Charnock coeff.     :',F10.4/          &
          '       betamax                     :',F9.3/           &
          '       power of cos. in wind input :',F9.3/           &
+         '       AFS stress added WIS stress :',F9.3/           &
          '       z0max                       :',F9.3/           &
          '       zalp                        :',F9.3/           &
          '       Height of input wind (m)    :',F8.2/           &
@@ -6277,7 +6280,7 @@ CONTAINS
          '       ratio of z0 for orb. & mean :',F9.3/)
 2920 FORMAT ( '  &SIN4 ZWND =',F5.1,', ALPHA0 =',F8.5,', Z0MAX =',F8.5,', BETAMAX =', &
          F8.5,','/                                           &
-         '        SINTHP =',F8.5,', ZALP =',F8.5,', TAUWSHELTER =',F8.5,           &
+         '        SINTHP =',F8.5,', SINAFS =',F8.5,', ZALP =',F8.5,', TAUWSHELTER =',F8.5,           &
          ', SWELLFPAR =',I2,','/                                 &
          '        SWELLF =',F8.5,', SWELLF2 =',F8.5,             &
          ', SWELLF3 =',F8.5,', SWELLF4 =',F9.1,','/              &
