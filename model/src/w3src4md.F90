@@ -564,7 +564,7 @@ CONTAINS
     REAL X,ZARG,ZLOG,UST
     REAL                    :: COSWIND, XSTRESS, YSTRESS, TAUHF
     REAL TEMP, TEMP2
-    INTEGER IND,J,I,ISTAB
+    INTEGER IND,J,I,ISTAB,IERR
     REAL DSTAB(3,NSPEC), DVISC, DTURB
     REAL STRESSSTAB(3,2),STRESSSTABN(3,2)
     !
@@ -586,7 +586,7 @@ CONTAINS
     REAL                    :: ZINN       ! approximate inner region height
     REAL                    :: UINN       ! approximate wind speed at ZINN
     REAL                    :: ZCAFS      ! critical layer height for AFS stress calculation
-    REAL                    :: CPHI       ! phase speed of waves
+    REAL                    :: CVEL       ! phase speed of waves
     REAL                    :: DSTBK(NSPEC)       ! 
     REAL                    :: WCAPFX     ! whitecap percentage recalculated for fluxes
     REAL                    :: ZCF        ! height of critical layer
@@ -597,12 +597,21 @@ CONTAINS
     REAL                    :: EPSB=0.5   ! epssilon b in Kudryavtsev et al 2001
     REAL                    :: TEMPBK     ! integration term for breaking stress
     REAL                    :: GAMMABK=0.2 ! should be 0.1-1.
+    REAL                    :: SWCBR17=0.  ! switch to use Brumer et al 2017 whitecap param, rather than tanh3
+    REAL                    :: ABR17=7.38E-4 ! parameters for Brumer et al 2017 whitecap computation
+    REAL                    :: BBR17=4.23  ! should be wc [0,1] = abr17 * (U - bbr17)**cbr17
+    REAL                    :: CBR17=1.42
+    CHARACTER(160)          :: FNAMETEST
     !/
     !/ ------------------------------------------------------------------- /
     !/
 #ifdef W3_S
     CALL STRACE (IENT, 'W3SIN4')
 #endif
+!! RF
+    FNAMETEST='RF_SIN4.dat'
+    OPEN (992,FILE=FNAMETEST,FORM='FORMATTED', ACCESS='APPEND',STATUS='UNKNOWN')
+!! RF
     !
 #ifdef W3_T
     WRITE (NDST,9000) BBETA, USTAR, USDIR*RADE
@@ -731,11 +740,15 @@ CONTAINS
       STRESSAFS(:)=0.
       WCAPFX = 0.
       IF (SSINAFS .GT. 0.) THEN
-         WCAPFX = (TANH(2.*U/UMAXBK))**2.5
-         IF (WCAPFX .GT. 1.) THEN
-            WCAPFX=1.
-         ENDIF
-      ENDIF
+!        WCAPFX = (TANH(2.*U/UMAXBK))**2.5
+        WCAPFX = MAX(0.,(TANH(1.*(U-UMIN)/(UMAXBK-UMIN)))**3.0)
+        IF (SWCBR17 .GT. 0.) THEN
+           WCAPFX=MAX(0.,ABR17*(U-BBR17)**CBR17)
+        ENDIF
+        IF (WCAPFX .GT. 1.) THEN
+           WCAPFX=1.
+        ENDIF
+     ENDIF
 !! RF
       !
       DO IK=1, NK
@@ -754,8 +767,8 @@ CONTAINS
         ! it is the integral of rho_w g Sin/C /rho_a
         ! (air-> waves momentum flux)
 !! RF
-        CPHI   = SIG2(IS)/K(IK)  !! wave phase speed
-        ZINN   = SQRT(0.5)/K(IK) !! inner layer
+        CVEL   = SIG2(IS)/K(IS)  !! wave phase speed
+        ZINN   = SQRT(0.5)/K(IS) !! inner layer
         UINN   = U*(ZINN/10.)**0.11 !! wind speed at inner height
         ZCF = KAPPA/ UCN
         IF (ZCF .LT. 8.) THEN
@@ -764,8 +777,11 @@ CONTAINS
              ZCF = 8.0 
              ZCAFS     = Z0*EXP(ZCF)
         ENDIF
-        FACBK = (EPSB*GAMMABK/KAPPA**2)*(USTP**2)*(LOG(EPSB/(K(IK)*ZCAFS))**2)
-        CONST4 = DDEN(IK)/(SIG(IK)*CG(IK))
+        FACBK = (EPSB*GAMMABK/KAPPA**2)*(USTP**2)*(LOG(EPSB/(K(IS)*ZCAFS))**2)
+!! AFS01 CONST4 = DDEN(IK)/(SIG(IK)*CG(IK)) 
+!! AFS02 CONST4 = DDEN(IK)/CG(IK) 
+!! AFS03 CONST4 = DDEN(IK)
+        CONST4 = DDEN(IK)/(SIG(IK)*CG(IK)) 
 !! RF
         CONST2=DDEN2(IS)/CG(IK) &        !Jacobian to get energy in band
              *GRAV/(SIG(IK)/K(IS)*DRAT) ! coefficient to get momentum
@@ -802,7 +818,7 @@ CONTAINS
               !                  *UCN*UCN*COSWIND**SSINTHP *(1+BRLAMBDA(IS)*20*SSINBR)
 !! RF
               DSTBK(IS)=0.
-              IF ( CPHI .LE. UINN ) THEN
+              IF ( CVEL .LE. UINN ) THEN
                 DSTBK(IS) = BRLAMBDA(IS) * COSWIND
               END IF
 !! RF
@@ -1038,6 +1054,11 @@ CONTAINS
       TAUWY=TAUWY*TAUWB/TAUW
     END IF
     !
+!! RF
+    WRITE (992, 9100) U, UST, XSTRESS, YSTRESS, TAUWNX, TAUWNY, &
+               STRESSSTAB (3,1), STRESSSTAB (3,2), CONST4, &
+               STRESSAFS(1), STRESSAFS(2), WCAPFX
+    CLOSE(992)
     RETURN
     !
     ! Formats
@@ -1065,6 +1086,7 @@ CONTAINS
              '               U          :',E12.3)
 
 #endif
+9100 FORMAT (F7.3,F9.5,9E12.3,F8.3  )
     !/
     !/ End of W3SIN4 ----------------------------------------------------- /
     !/

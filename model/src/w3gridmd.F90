@@ -1716,7 +1716,7 @@ CONTAINS
     Z0RAT = 0.04
     BETAMAX   = 1.43
     SINTHP    = 2.
-    SINAFS    = 0.
+    SINAFS    = 0.5
     SWELLF    = 0.66
     SWELLFPAR = 1
     SWELLF2 = -0.018

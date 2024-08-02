@@ -3035,7 +3035,7 @@ CONTAINS
          '               NREQ   :',I4/                        &
          '               SCALE1 :',E10.3/                     &
          '               SCALE2 :',E10.3/                     &
-         '               FLSRCE :',6L2)
+         '               FLSRCE :',7L2)
 9002 FORMAT (' TEST W3EXNC : OUTPUT POINT : ',A)
 9010 FORMAT (' TEST W3EXNC : DEPTH =',F7.1,'  IK, T, K, CG :')
 9011 FORMAT ('               ',I3,F8.2,F8.4,F8.2)

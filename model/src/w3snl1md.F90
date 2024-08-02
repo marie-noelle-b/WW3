@@ -1553,15 +1553,16 @@ CONTAINS
     !/ ------------------------------------------------------------------- /
     USE CONSTANTS, ONLY: GRAV
     USE W3GDATMD,  ONLY: NK , NTH , XFR , FR1, GQNF1, GQNT1, GQNQ_OM2, NLTAIL, GQTHRCOU
-
 #ifdef W3_S
-    CALL STRACE (IENT, 'INSNLGQM')
+    USE W3SERVMD, ONLY: STRACE
 #endif
     IMPLICIT NONE
     !.....LOCAL VARIABLES
     INTEGER           JF    , JT    , JF1   , JT1   , NF1P1 , IAUX , NT , NF , IK
     INTEGER           IQ_TE1 , IQ_OM2 , LBUF , DIMBUF , IQ_OM1 , NQ_TE1 , NCONFM
-
+#ifdef W3_S
+    INTEGER, SAVE           :: IENT = 0
+#endif
     DOUBLE PRECISION  EPSI_A, AUX   , CCC   , DENO  , AAA   , DP2SG , TAILF
     DOUBLE PRECISION  V1    , V1_4  , DV1   , DTETAR , ELIM , RAISF
     DOUBLE PRECISION  V2    , V2_4  , V3    , V3_4
@@ -1581,6 +1582,9 @@ CONTAINS
     DOUBLE PRECISION, ALLOCATABLE :: F1SF(:) , X_CHE_TE1(:) , X_CHE_OM2(:) , X_LEG_OM2(:) , W_LEG_OM2(:) &
          ,  MAXCLA(:)
 
+#ifdef W3_S
+    CALL STRACE (IENT, 'INSNLGQM')
+#endif
     PI = Acos(-1.)
     LBUF = 500
     DIMBUF = 2*LBUF+200

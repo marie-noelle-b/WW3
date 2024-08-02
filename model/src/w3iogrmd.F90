@@ -2130,8 +2130,8 @@ CONTAINS
     !
 #ifdef W3_NL1
 9051 FORMAT (' TEST W3IOGR : MODULE W3GDATMD SNLP'/          &
-         '      DATA   : ',2E10.3/                           &
-         '               ',5E10.3)
+         '      DATA   : ',7E10.3,I4/                        &
+         '               ',E10.3,3I4,6E10.3)
 #endif
     !
 #ifdef W3_NL2
