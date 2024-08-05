@@ -2203,12 +2203,12 @@ CONTAINS
     !/ ------------------------------------------------------------------- /
     USE CONSTANTS,ONLY: GRAV, KAPPA, DWAT, PI, TPI, RADE, DEBUG_NODE
     USE W3GDATMD, ONLY: NSPEC, NTH, NK, SSDSBR, SSDSBT, DDEN,      &
-         SSDSC, EC2, ES2, ESC,                      &
+         SSDSC, EC2, ES2, ESC, BBETA                &
          SIG, SSDSP, ECOS, ESIN, DTH, AAIRGB,       &
          SSDSISO, SSDSDTH, SSDSBM, AAIRCMIN,        &
          SSDSBRFDF, SSDSBCK, IKTAB, DCKI,           &
          SATINDICES, SATWEIGHTS, CUMULW, NKHS, NKD, &
-         NDTAB, QBI, DSIP, SSDSBRF1,XFR
+         NDTAB, QBI, DSIP, SSDSBRF1,XFR, ZZALP
 #ifdef W3_IG1
     USE W3GDATMD, ONLY: IGPARS
 #endif
@@ -2251,7 +2251,7 @@ CONTAINS
     INTEGER                 :: NSMOOTH(NK)
     REAL                    :: C, C2, CUMULWISO, COSWIND, ASUM, SDIAGISO
     REAL                    :: COEF1, COEF2, COEF4(NK),      &
-         COEF5(NK)
+                                  COEF5(NK)
 
     REAL                    :: FACTURB, FACTURB2, DTURB, DVISC, DIAG2, BREAKFRACTION
     REAL                    :: RENEWALFREQ, EPSR
@@ -2275,6 +2275,15 @@ CONTAINS
     REAL                    :: TSTR, TMAX, DT, T, MFT, DIRFORCUM
     REAL                    :: PB(NSPEC), PB2(NSPEC), BRM12(NK), BTOVER
     REAL                    :: KO, LMODULATION(NTH)
+    !/ ------------------------------------------------------------------- /
+    !/    R. Fernandes, for Kudryavtsev 2014 breaking rate
+    !/ ------------------------------------------------------------------- /
+    REAL                    :: ZINN, COSU, SINU, UINN, ZINN, ZTAUL
+    REAL                    :: ZCN, UCN, ZARG, ZLOG, ZBETA, BK2014
+    REAL                    :: CDB =0.5 ! K2014, could be 0.35
+    REAL                    :: EPSB = 0.5
+    REAL                    :: ZALPHA = 2.8E-3 ! corresponds to b
+    REAL                    :: GAMMABK = 0.2 ! btw 0.1 and 1 in K2014
     !/ ------------------------------------------------------------------- /
     !/
 #ifdef W3_S
@@ -2609,6 +2618,45 @@ CONTAINS
       !   Breaking probability (Is actually the breaking rate)
       PB = BRLAMBDA *C
       !
+      !############################################################################################"
+    CASE(4)
+      !
+      ! Kudryavtsev & Makin 2001 / Kudryavtsev et al 2014
+      !
+      COSU   = COS(USDIR)
+      SINU   = SIN(USDIR)
+      ! 
+      DO IK=1,NK
+        C=SIG(IK)/K(IK)
+        ZINN   = SQRT(CDB)/K(IK) ! eq 42, K2014
+        !! inner layer height
+        UINN   = U*(ZINN/10.)**0.11
+        !! wind at top of inner layer height
+        ZTAUL=UINN**2/U**2*(LOG(10./Z0)/LOG(ZINN/Z0))**2 !! TAU local, version 1
+        ZTAUL=((1+EPSB)**2)*(UINN-C)**2 !! TAU local version 2
+        UCN=USTAR/C+ZZALP  !this is the inverse wave age
+        ZCN=ALOG(K(IK)*Z0)
+        DO ITH=1,NTH
+           IS=ITH+(IK-1)*NTH
+           COSWIND=(ECOS(IS)*COSU+ESIN(IS)*SINU) ! wind/waves relative angle
+           X=COSWIND*UCN
+           ! this ZARG term is the argument of the exponential
+           ! in Janssen 1991 eq. 16.
+           ZARG=KAPPA/X
+           ZLOG=ZCN+ZARG
+           ZBETA = BBETA/KAPPA**2*EXP(ZLOG)*ZLOG**4 ! CBETA growth rate
+           BTH(IS)=MAX(A(IS)*SIG(IK)*K(IK)**3,1E-14)
+           BK2014 = ZBETA*ZTAUL*(UST/C)**2*COSWIND**2 !! eq 3 in K2014
+           BRLAMBDA(IS) = BK2014 / ZALPHA * BTH(IS) / K(IK) ! alpha is around 2.8 10-3
+           !  Source term / sig2  (action dissipation)
+           SRHS(IS)= GAMMABK/GRAV**2*BRLAMBDA(IS)*C**5
+           ! diagonal
+           DDIAG(IS) = SRHS(IS)*SSDSBR/MAX(1.e-20,BTH(NTH))/MAX(1e-20,A(IS))  !
+        END DO
+      END DO
+      !   Breaking probability (Is actually the breaking rate)
+      PB = BRLAMBDA *C
+
     END SELECT
     !############################################################################################"
     !
@@ -2684,7 +2732,7 @@ CONTAINS
       COEF4(IK) = C*C*SUM(BRLAMBDA(IS0+1:IS0+NTH))                          &
            *2.*PI/GRAV*SSDSC(7) * DDEN(IK)/(SIG(IK)*CG(IK))
       COEF5(IK) = C**3*SUM(BRLAMBDA(IS0+1:IS0+NTH)                           &
-           *BRM12(IK))                       	       &
+           *BRM12(IK))                                                       &
            *AAIRGB/GRAV * DDEN(IK)/(SIG(IK)*CG(IK))
       !        COEF4(IK) = SUM(BRLAMBDA((IK-1)*NTH+1:IK*NTH) * DTH) *(2*PI/K(IK)) *  &
       !                    SSDSC(7) * DDEN(IK)/(DTH*SIG(IK)*CG(IK))
