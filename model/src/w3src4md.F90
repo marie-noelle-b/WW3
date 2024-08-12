@@ -593,10 +593,11 @@ CONTAINS
     REAl                    :: CONST4     ! for integration
     REAl                    :: FACBK      ! term to integrate
     REAl                    :: STRESSAFS(2) ! air flow separation stress component (Kudryavtsev al 2001)
+    REAL                    :: UMIN=1.    ! min wind speed for whitecap 
     REAL                    :: UMAXBK=63. ! max wind for parametric whitecap tuning
     REAL                    :: EPSB=0.5   ! epssilon b in Kudryavtsev et al 2001
     REAL                    :: TEMPBK     ! integration term for breaking stress
-    REAL                    :: GAMMABK=0.2 ! should be 0.1-1.
+    REAL                    :: GAMMABK=0.05 ! should be 0.1-1.
     REAL                    :: SWCBR17=0.  ! switch to use Brumer et al 2017 whitecap param, rather than tanh3
     REAL                    :: ABR17=7.38E-4 ! parameters for Brumer et al 2017 whitecap computation
     REAL                    :: BBR17=4.23  ! should be wc [0,1] = abr17 * (U - bbr17)**cbr17
@@ -610,7 +611,7 @@ CONTAINS
 #endif
 !! RF
     FNAMETEST='RF_SIN4.dat'
-    OPEN (992,FILE=FNAMETEST,FORM='FORMATTED', ACCESS='APPEND',STATUS='UNKNOWN')
+    OPEN (992,FILE=FNAMETEST,FORM='FORMATTED', STATUS='REPLACE')
 !! RF
     !
 #ifdef W3_T
@@ -739,16 +740,16 @@ CONTAINS
 !! RF 
       STRESSAFS(:)=0.
       WCAPFX = 0.
-      IF (SSINAFS .GT. 0.) THEN
+!!      IF (SSINAFS .GT. 0.) THEN
 !        WCAPFX = (TANH(2.*U/UMAXBK))**2.5
-        WCAPFX = MAX(0.,(TANH(1.*(U-UMIN)/(UMAXBK-UMIN)))**3.0)
-        IF (SWCBR17 .GT. 0.) THEN
-           WCAPFX=MAX(0.,ABR17*(U-BBR17)**CBR17)
-        ENDIF
-        IF (WCAPFX .GT. 1.) THEN
-           WCAPFX=1.
-        ENDIF
-     ENDIF
+!!        WCAPFX = MAX(0.,(TANH(1.*(U-UMIN)/(UMAXBK-UMIN)))**3.0)
+!!        IF (SWCBR17 .GT. 0.) THEN
+!!           WCAPFX=MAX(0.,ABR17*(U-BBR17)**CBR17)
+!!        ENDIF
+!!        IF (WCAPFX .GT. 1.) THEN
+!!           WCAPFX=1.
+!!        ENDIF
+!!     ENDIF
 !! RF
       !
       DO IK=1, NK
@@ -768,7 +769,8 @@ CONTAINS
         ! (air-> waves momentum flux)
 !! RF
         CVEL   = SIG2(IS)/K(IS)  !! wave phase speed
-        ZINN   = SQRT(0.5)/K(IS) !! inner layer
+        ZINN   = SQRT(0.35)/K(IS) !! inner layer
+!!        ZINN   = 0.1/K(IS) !! inner layer
         UINN   = U*(ZINN/10.)**0.11 !! wind speed at inner height
         ZCF = KAPPA/ UCN
         IF (ZCF .LT. 8.) THEN
@@ -777,6 +779,7 @@ CONTAINS
              ZCF = 8.0 
              ZCAFS     = Z0*EXP(ZCF)
         ENDIF
+!! RF
         FACBK = (EPSB*GAMMABK/KAPPA**2)*(USTP**2)*(LOG(EPSB/(K(IS)*ZCAFS))**2)
 !! AFS01 CONST4 = DDEN(IK)/(SIG(IK)*CG(IK)) 
 !! AFS02 CONST4 = DDEN(IK)/CG(IK) 
@@ -819,7 +822,8 @@ CONTAINS
 !! RF
               DSTBK(IS)=0.
               IF ( CVEL .LE. UINN ) THEN
-                DSTBK(IS) = BRLAMBDA(IS) * COSWIND
+!! RF
+                DSTBK(IS) = BRLAMBDA(IS) * COSWIND**3 /K(IS)
               END IF
 !! RF
               LLWS(IS)=.TRUE.
@@ -1055,7 +1059,7 @@ CONTAINS
     END IF
     !
 !! RF
-    WRITE (992, 9100) U, UST, XSTRESS, YSTRESS, TAUWNX, TAUWNY, &
+    WRITE (992, 9100) U, UST, TAUWX, TAUWY, TAUWNX, TAUWNY, &
                STRESSSTAB (3,1), STRESSSTAB (3,2), CONST4, &
                STRESSAFS(1), STRESSAFS(2), WCAPFX
     CLOSE(992)
@@ -2203,7 +2207,7 @@ CONTAINS
     !/ ------------------------------------------------------------------- /
     USE CONSTANTS,ONLY: GRAV, KAPPA, DWAT, PI, TPI, RADE, DEBUG_NODE
     USE W3GDATMD, ONLY: NSPEC, NTH, NK, SSDSBR, SSDSBT, DDEN,      &
-         SSDSC, EC2, ES2, ESC, BBETA                &
+         SSDSC, EC2, ES2, ESC, BBETA,               &
          SIG, SSDSP, ECOS, ESIN, DTH, AAIRGB,       &
          SSDSISO, SSDSDTH, SSDSBM, AAIRCMIN,        &
          SSDSBRFDF, SSDSBCK, IKTAB, DCKI,           &
@@ -2278,12 +2282,16 @@ CONTAINS
     !/ ------------------------------------------------------------------- /
     !/    R. Fernandes, for Kudryavtsev 2014 breaking rate
     !/ ------------------------------------------------------------------- /
-    REAL                    :: ZINN, COSU, SINU, UINN, ZINN, ZTAUL
+    REAL                    :: ZINN, COSU, SINU, UINN, ZTAUL, UINN2
     REAL                    :: ZCN, UCN, ZARG, ZLOG, ZBETA, BK2014
     REAL                    :: CDB =0.5 ! K2014, could be 0.35
     REAL                    :: EPSB = 0.5
-    REAL                    :: ZALPHA = 2.8E-3 ! corresponds to b
-    REAL                    :: GAMMABK = 0.2 ! btw 0.1 and 1 in K2014
+!!   REAL                    :: ZALPHA = 2.8E-3 ! corresponds to b
+    REAL                    :: ZALPHA = 0.01
+    REAL                    :: GAMMABK = 0.002 ! btw 0.1 and 1 in K2014
+    REAL                    :: BRLAMBDA0
+    REAL                    :: SDSHS0
+    CHARACTER(160)          :: FNAMETEST
     !/ ------------------------------------------------------------------- /
     !/
 #ifdef W3_S
@@ -2580,6 +2588,10 @@ CONTAINS
       !
       ! directional saturation I
       ! integrate in azimuth
+!! RF
+      FNAMETEST='RF_SDS4.dat'
+      OPEN (994,FILE=FNAMETEST,FORM='FORMATTED', STATUS='REPLACE')
+!! RF 
       KO=(GRAV/(1E-6+USTAR**2))/(28./SSDSC(16))**2
       DO IK=1,NK
         IS0=(IK-1)*NTH
@@ -2595,6 +2607,8 @@ CONTAINS
           DO ITH=1,NTH
             FACSTRAINL=1.+SSDSC(18)*((MSSSUM(IK,1)*KLOC)**SSDSC(14) *      &   ! Romero
                  (ECOS(ITH)*COS(DIRFORCUM)+ESIN(ITH)*SIN(DIRFORCUM))**2)
+!!             FACSTRAINL=1.+SSDSC(18)*((MSSSUM(IK,1)*KLOC)**SSDSC(14) *      &   ! Romero
+!!                   (ECOS(ITH)*COS(DIRFORCUM)+ESIN(ITH)*SIN(DIRFORCUM))**1.5)
             LMODULATION(ITH)= FACSTRAINL**SSDSC(19)
           END DO
         ELSE
@@ -2605,6 +2619,9 @@ CONTAINS
         BRLAMBDA(IS0+1:IS0+NTH)=SSDSC(9)*EXP(-SSDSBR/BTH(1:NTH))              &
              *( 1.0+SSDSC(13)*MAX(1.,(K(IK)/KO))**SSDSC(15) ) &
              /(SSDSC(13)+1)*LMODULATION(1:NTH)
+!! test RF        BRLAMBDA(IS0+1:IS0+NTH)=SSDSC(9)*EXP(-SSDSBR/BTH(1:NTH))              &
+!!               *( 1.0+SSDSC(13)*MAX(1.,(K(IK)/KO))**SSDSC(15) ) &
+!!               /(SSDSC(13)+1)*LMODULATION(1:NTH)/K(IK)
         ! Breaking strength : generalisation of Duncan's b parameter
         BTOVER = SQRT(BTH0(IK))-SQRT(SSDSBT)
         BRM12(IK)=SSDSC(2)*(MAX(0.,BTOVER))**(2.5)/SIG(IK)  ! not function of direction
@@ -2612,9 +2629,17 @@ CONTAINS
         BRLAMBDA(IS0+1:IS0+NTH)= MAX(0.,SIGN(BRLAMBDA(IS0+1:IS0+NTH),BTOVER))
         !  Source term / sig2  (action dissipation)
         SRHS(IS0+1:IS0+NTH)= BRM12(IK)/GRAV**2*BRLAMBDA(IS0+1:IS0+NTH)*C**5
+!! RF 
+!!        BRLAMBDA0=2*GRAV/(C**3)*SUM(BRLAMBDA(IS0+1:IS0+NTH)*DTH)
+        SDSHS0=SIG(IK)*SUM(SRHS(IS0+1:IS0+NTH)*DTH)
+        BRLAMBDA0=2*GRAV/(C**3)*SIG(IK)*SUM(BRLAMBDA(IS0+1:IS0+NTH)*DTH)
+        WRITE (994, 9104) C, BRLAMBDA0, K(IK),SDSHS0 
         ! diagonal
         DDIAG(IS0+1:IS0+NTH) = SRHS(IS0+1:IS0+NTH)*SSDSBR/MAX(1.e-20,BTH(1:NTH))/MAX(1e-20,A(IS0+1:IS0+NTH))  !
       END DO
+!! RF
+      CLOSE(994)
+!! RF
       !   Breaking probability (Is actually the breaking rate)
       PB = BRLAMBDA *C
       !
@@ -2623,40 +2648,68 @@ CONTAINS
       !
       ! Kudryavtsev & Makin 2001 / Kudryavtsev et al 2014
       !
+!! RF
+      FNAMETEST='RF_SDS4.dat'
+      OPEN (994,FILE=FNAMETEST,FORM='FORMATTED', STATUS='REPLACE')
+!! RF 
       COSU   = COS(USDIR)
       SINU   = SIN(USDIR)
       ! 
       DO IK=1,NK
+        IS0=(IK-1)*NTH
         C=SIG(IK)/K(IK)
-        ZINN   = SQRT(CDB)/K(IK) ! eq 42, K2014
+!!        ZINN   = SQRT(CDB)/K(IK) ! eq 42, K2014
+        ZINN = 0.1/K(IK)
         !! inner layer height
         UINN   = U*(ZINN/10.)**0.11
+        UINN2=1.5*UINN
         !! wind at top of inner layer height
+!! DEBUG
+!!        ZTAUL=1.
         ZTAUL=UINN**2/U**2*(LOG(10./Z0)/LOG(ZINN/Z0))**2 !! TAU local, version 1
-        ZTAUL=((1+EPSB)**2)*(UINN-C)**2 !! TAU local version 2
+!!        ZTAUL=((1+EPSB)**2)*(UINN-C)**2 !! TAU local version 2
         UCN=USTAR/C+ZZALP  !this is the inverse wave age
-        ZCN=ALOG(K(IK)*Z0)
+!!        ZCN=LOG(K(IK)*Z0)
         DO ITH=1,NTH
            IS=ITH+(IK-1)*NTH
            COSWIND=(ECOS(IS)*COSU+ESIN(IS)*SINU) ! wind/waves relative angle
-           X=COSWIND*UCN
-           ! this ZARG term is the argument of the exponential
-           ! in Janssen 1991 eq. 16.
-           ZARG=KAPPA/X
-           ZLOG=ZCN+ZARG
-           ZBETA = BBETA/KAPPA**2*EXP(ZLOG)*ZLOG**4 ! CBETA growth rate
-           BTH(IS)=MAX(A(IS)*SIG(IK)*K(IK)**3,1E-14)
-           BK2014 = ZBETA*ZTAUL*(UST/C)**2*COSWIND**2 !! eq 3 in K2014
-           BRLAMBDA(IS) = BK2014 / ZALPHA * BTH(IS) / K(IK) ! alpha is around 2.8 10-3
-           !  Source term / sig2  (action dissipation)
+           BRLAMBDA(IS) = 0.
+           IF (( C .LE. UINN2 ) .AND. (COSWIND.GT.0.01))  THEN !! limitting condition for fast moving waves Kudryetsev et al (2014)
+!!           IF (COSWIND.GT.0.01)  THEN !! limitting condition for fast moving waves Kudryetsev et al (2014)
+              ZARG   = KAPPA*C/(USTAR*ABS(COSWIND))
+!!           ZCF   = KAPPA*CPHI/(USTAR*1)
+              IF (ZARG .LT. 8) THEN
+                ZLOG   = Z0*EXP(ZARG)
+              ELSE
+                ZARG = 8.0
+                ZLOG     = Z0*EXP(ZARG)
+              ENDIF
+!              ZBETA = 2./KAPPA*LOG(PI/K(IK)/ZLOG) ! CBETA growth rate
+              ZBETA = 5./USTAR
+           ELSE
+              ZLOG  = 0.
+              ZBETA = 0.
+           ENDIF
+           BTH(IS)= 0.1 *SSDSBR* COSWIND**2 * UCN**0.18 
+!!           BTH(IS)=MAX(A(IS)*K(IK)**3,1E-14) !! no SIG here because B(k,theta)
+           BK2014 = ZBETA*ZTAUL*USTAR**2/GRAV*COSWIND**2 !! eq 3 in K2014
+           BRLAMBDA(IS) = BK2014 * BTH(IS)  ! alpha is around 2.8 10-3
+                 !  Source term / sig2  (action dissipation)
+ !!         WRITE (994, 9105) K(IK), ITH, ZARG, ZLOG, ZBETA, ZTAUL, BTH(IS), BK2014, BRLAMBDA(IS)
+ !!             END IF !! LOG <=0
            SRHS(IS)= GAMMABK/GRAV**2*BRLAMBDA(IS)*C**5
            ! diagonal
            DDIAG(IS) = SRHS(IS)*SSDSBR/MAX(1.e-20,BTH(NTH))/MAX(1e-20,A(IS))  !
         END DO
+!! RF 
+        BTH0(IK)=SUM(SIG(IK)*BTH(IS0+1:IS0+NTH)*DTH)
+        BRLAMBDA0=2*GRAV/C**3*SIG(IK)*SUM(BRLAMBDA(IS0+1:IS0+NTH)*DTH)
+        SDSHS0=SIG(IK)*SUM(SRHS(IS0+1:IS0+NTH)*DTH)
+        WRITE (994, 9104) C, BRLAMBDA0, K(IK), SDSHS0
       END DO
-      !   Breaking probability (Is actually the breaking rate)
-      PB = BRLAMBDA *C
-
+!! RF
+      CLOSE(994)
+!! RF
     END SELECT
     !############################################################################################"
     !
@@ -2792,6 +2845,10 @@ CONTAINS
     !
     ! Formats
     !
+!! RF
+    9104 FORMAT (F8.4,3E12.4 )
+    9105 FORMAT (F8.4,I8,7E12.4 )
+!!RF
     !/
     !/ End of W3SDS4 ----------------------------------------------------- /
     !/
