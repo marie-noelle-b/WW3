@@ -2124,7 +2124,7 @@ CONTAINS
     FXFMAGE = 0.
     FXPM3 = 4.
     WNMEANPTAIL = -0.5
-    SDSBCHOICE =3 ! 1: Ardhuin et al., 2: Filipot & Ardhuin, 3: Romero, 4 Kudryavtsev
+    SDSBCHOICE =4 ! 1: Ardhuin et al., 2: Filipot & Ardhuin, 3: Romero, 4 Kudryavtsev
 !!    SDSC2     = -2.2E-5     ! -3.8 for Romero
     SDSC2     = -3.8
     SDSCUM    = -0.40344

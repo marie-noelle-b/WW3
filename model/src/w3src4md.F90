@@ -599,6 +599,7 @@ CONTAINS
     REAL                    :: TEMPBK     ! integration term for breaking stress
     REAL                    :: GAMMABK=0.05 ! should be 0.1-1.
     REAL                    :: SWCBR17=0.  ! switch to use Brumer et al 2017 whitecap param, rather than tanh3
+    REAL                    :: CDB = 0.1
     REAL                    :: ABR17=7.38E-4 ! parameters for Brumer et al 2017 whitecap computation
     REAL                    :: BBR17=4.23  ! should be wc [0,1] = abr17 * (U - bbr17)**cbr17
     REAL                    :: CBR17=1.42
@@ -769,7 +770,7 @@ CONTAINS
         ! (air-> waves momentum flux)
 !! RF
         CVEL   = SIG2(IS)/K(IS)  !! wave phase speed
-        ZINN   = SQRT(0.35)/K(IS) !! inner layer
+        ZINN   = EPSB/K(IS) !! inner layer
 !!        ZINN   = 0.1/K(IS) !! inner layer
         UINN   = U*(ZINN/10.)**0.11 !! wind speed at inner height
         ZCF = KAPPA/ UCN
@@ -780,9 +781,13 @@ CONTAINS
              ZCAFS     = Z0*EXP(ZCF)
         ENDIF
 !! RF
-        FACBK = (EPSB*GAMMABK/KAPPA**2)*(USTP**2)*(LOG(EPSB/(K(IS)*ZCAFS))**2)
+        FACBK = 0.
+!!        IF (CVEL .LE. UINN) THEN
+!!        FACBK = 0.1 * EPSB * CDB * (UINN-CVEL)**2 
+!!        ENDIF
+        FACBK = (EPSB*CDB/KAPPA**2)*(USTP**2)*(LOG(EPSB/(K(IS)*ZCAFS))**2)
 !! AFS01 CONST4 = DDEN(IK)/(SIG(IK)*CG(IK)) 
-!! AFS02 CONST4 = DDEN(IK)/CG(IK) 
+!!        CONST4 = DDEN(IK)/CG(IK) 
 !! AFS03 CONST4 = DDEN(IK)
         CONST4 = DDEN(IK)/(SIG(IK)*CG(IK)) 
 !! RF
@@ -823,7 +828,8 @@ CONTAINS
               DSTBK(IS)=0.
               IF ( CVEL .LE. UINN ) THEN
 !! RF
-                DSTBK(IS) = BRLAMBDA(IS) * COSWIND**3 /K(IS)
+                DSTBK(IS) = BRLAMBDA(IS) * COSWIND**3 / K(IS) 
+!!                 DSTBK(IS) = BRLAMBDA(IS) * COSWIND**3 /K(IS)
               END IF
 !! RF
               LLWS(IS)=.TRUE.
@@ -875,7 +881,9 @@ CONTAINS
           STRESSAFS(2)=STRESSAFS(2)+TEMPBK*ESIN(IS)
 !! RF
         END DO
+!!        WRITE (992, 9100) K(IS), STRESSSTAB (3,1),STRESSAFS(1)
       END DO
+!!      CLOSE(992)
       !
 !! RF
       D(:)=DSTAB(3,:)
@@ -1061,7 +1069,7 @@ CONTAINS
 !! RF
     WRITE (992, 9100) U, UST, TAUWX, TAUWY, TAUWNX, TAUWNY, &
                STRESSSTAB (3,1), STRESSSTAB (3,2), CONST4, &
-               STRESSAFS(1), STRESSAFS(2), WCAPFX
+               STRESSAFS(1), STRESSAFS(2), WCAPFX, UINN, ZINN
     CLOSE(992)
     RETURN
     !
@@ -1090,7 +1098,8 @@ CONTAINS
              '               U          :',E12.3)
 
 #endif
-9100 FORMAT (F7.3,F9.5,9E12.3,F8.3  )
+9100 FORMAT (F7.3,F9.5,9E12.3,3F8.3  )
+!!9100 FORMAT (F9.5,2E12.3)
     !/
     !/ End of W3SIN4 ----------------------------------------------------- /
     !/
@@ -2658,8 +2667,8 @@ CONTAINS
       DO IK=1,NK
         IS0=(IK-1)*NTH
         C=SIG(IK)/K(IK)
-!!        ZINN   = SQRT(CDB)/K(IK) ! eq 42, K2014
-        ZINN = 0.1/K(IK)
+        ZINN   = SQRT(CDB)/K(IK) ! eq 42, K2014
+!!        ZINN = 0.1/K(IK)
         !! inner layer height
         UINN   = U*(ZINN/10.)**0.11
         UINN2=1.5*UINN
@@ -2667,7 +2676,10 @@ CONTAINS
 !! DEBUG
 !!        ZTAUL=1.
         ZTAUL=UINN**2/U**2*(LOG(10./Z0)/LOG(ZINN/Z0))**2 !! TAU local, version 1
-!!        ZTAUL=((1+EPSB)**2)*(UINN-C)**2 !! TAU local version 2
+!!        ZTAUL = 0.1
+!!        IF ( C .LE. UINN ) THEN 
+!!           ZTAUL=((1+EPSB)**2)*(UINN-C)**2 !! TAU local version 2
+!!        END IF
         UCN=USTAR/C+ZZALP  !this is the inverse wave age
 !!        ZCN=LOG(K(IK)*Z0)
         DO ITH=1,NTH
@@ -2684,14 +2696,15 @@ CONTAINS
                 ZARG = 8.0
                 ZLOG     = Z0*EXP(ZARG)
               ENDIF
+!!              ZBETA = 2./KAPPA*LOG(PI/K(IK)/ZLOG) 
 !              ZBETA = 2./KAPPA*LOG(PI/K(IK)/ZLOG) ! CBETA growth rate
               ZBETA = 5./USTAR
            ELSE
               ZLOG  = 0.
               ZBETA = 0.
            ENDIF
-           BTH(IS)= 0.1 *SSDSBR* COSWIND**2 * UCN**0.18 
-!!           BTH(IS)=MAX(A(IS)*K(IK)**3,1E-14) !! no SIG here because B(k,theta)
+!!           BTH(IS)= 0.1 *SSDSBR* COSWIND**2 * UCN**0.18
+           BTH(IS)=MAX(A(IS)*K(IK)**3,1E-14) !! no SIG here because B(k,theta)
            BK2014 = ZBETA*ZTAUL*USTAR**2/GRAV*COSWIND**2 !! eq 3 in K2014
            BRLAMBDA(IS) = BK2014 * BTH(IS)  ! alpha is around 2.8 10-3
                  !  Source term / sig2  (action dissipation)
@@ -2705,7 +2718,7 @@ CONTAINS
         BTH0(IK)=SUM(SIG(IK)*BTH(IS0+1:IS0+NTH)*DTH)
         BRLAMBDA0=2*GRAV/C**3*SIG(IK)*SUM(BRLAMBDA(IS0+1:IS0+NTH)*DTH)
         SDSHS0=SIG(IK)*SUM(SRHS(IS0+1:IS0+NTH)*DTH)
-        WRITE (994, 9104) C, BRLAMBDA0, K(IK), SDSHS0
+        WRITE (994, 9104) C, BRLAMBDA0, K(IK), BTH0(IK)
       END DO
 !! RF
       CLOSE(994)
