@@ -828,7 +828,7 @@ CONTAINS
               DSTBK(IS)=0.
               IF ( CVEL .LE. UINN ) THEN
 !! RF
-                DSTBK(IS) = BRLAMBDA(IS) * COSWIND**3 / K(IS) 
+                DSTBK(IS) = BRLAMBDA(IS) * COSWIND**5 / K(IS) 
 !!                 DSTBK(IS) = BRLAMBDA(IS) * COSWIND**3 /K(IS)
               END IF
 !! RF
@@ -2667,8 +2667,8 @@ CONTAINS
       DO IK=1,NK
         IS0=(IK-1)*NTH
         C=SIG(IK)/K(IK)
-        ZINN   = SQRT(CDB)/K(IK) ! eq 42, K2014
-!!        ZINN = 0.1/K(IK)
+!!        ZINN   = SQRT(CDB)/K(IK) ! eq 42, K2014
+        ZINN = 0.1/K(IK)
         !! inner layer height
         UINN   = U*(ZINN/10.)**0.11
         UINN2=1.5*UINN
@@ -2703,8 +2703,8 @@ CONTAINS
               ZLOG  = 0.
               ZBETA = 0.
            ENDIF
-!!           BTH(IS)= 0.1 *SSDSBR* COSWIND**2 * UCN**0.18
-           BTH(IS)=MAX(A(IS)*K(IK)**3,1E-14) !! no SIG here because B(k,theta)
+           BTH(IS)= 0.1 *SSDSBR* COSWIND**2 * UCN**0.18
+!!           BTH(IS)=MAX(A(IS)*K(IK)**3,1E-14) !! no SIG here because B(k,theta)
            BK2014 = ZBETA*ZTAUL*USTAR**2/GRAV*COSWIND**2 !! eq 3 in K2014
            BRLAMBDA(IS) = BK2014 * BTH(IS)  ! alpha is around 2.8 10-3
                  !  Source term / sig2  (action dissipation)
