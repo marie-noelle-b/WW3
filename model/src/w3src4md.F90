@@ -611,8 +611,8 @@ CONTAINS
     CALL STRACE (IENT, 'W3SIN4')
 #endif
 !! RF
-    FNAMETEST='RF_SIN4.dat'
-    OPEN (992,FILE=FNAMETEST,FORM='FORMATTED', STATUS='REPLACE')
+!!    FNAMETEST='RF_SIN4.dat'
+!!    OPEN (992,FILE=FNAMETEST,FORM='FORMATTED', STATUS='REPLACE')
 !! RF
     !
 #ifdef W3_T
@@ -1067,10 +1067,10 @@ CONTAINS
     END IF
     !
 !! RF
-    WRITE (992, 9100) U, UST, TAUWX, TAUWY, TAUWNX, TAUWNY, &
-               STRESSSTAB (3,1), STRESSSTAB (3,2), CONST4, &
-               STRESSAFS(1), STRESSAFS(2), WCAPFX, UINN, ZINN
-    CLOSE(992)
+!!    WRITE (992, 9100) U, UST, TAUWX, TAUWY, TAUWNX, TAUWNY, &
+!!               STRESSSTAB (3,1), STRESSSTAB (3,2), CONST4, &
+!!               STRESSAFS(1), STRESSAFS(2), WCAPFX, UINN, ZINN
+!!    CLOSE(992)
     RETURN
     !
     ! Formats
@@ -1098,7 +1098,7 @@ CONTAINS
              '               U          :',E12.3)
 
 #endif
-9100 FORMAT (F7.3,F9.5,9E12.3,3F8.3  )
+!!9100 FORMAT (F7.3,F9.5,9E12.3,3F8.3  )
 !!9100 FORMAT (F9.5,2E12.3)
     !/
     !/ End of W3SIN4 ----------------------------------------------------- /
@@ -2598,8 +2598,8 @@ CONTAINS
       ! directional saturation I
       ! integrate in azimuth
 !! RF
-      FNAMETEST='RF_SDS4.dat'
-      OPEN (994,FILE=FNAMETEST,FORM='FORMATTED', STATUS='REPLACE')
+!!      FNAMETEST='RF_SDS4.dat'
+!!      OPEN (994,FILE=FNAMETEST,FORM='FORMATTED', STATUS='REPLACE')
 !! RF 
       KO=(GRAV/(1E-6+USTAR**2))/(28./SSDSC(16))**2
       DO IK=1,NK
@@ -2640,14 +2640,14 @@ CONTAINS
         SRHS(IS0+1:IS0+NTH)= BRM12(IK)/GRAV**2*BRLAMBDA(IS0+1:IS0+NTH)*C**5
 !! RF 
 !!        BRLAMBDA0=2*GRAV/(C**3)*SUM(BRLAMBDA(IS0+1:IS0+NTH)*DTH)
-        SDSHS0=SIG(IK)*SUM(SRHS(IS0+1:IS0+NTH)*DTH)
-        BRLAMBDA0=2*GRAV/(C**3)*SIG(IK)*SUM(BRLAMBDA(IS0+1:IS0+NTH)*DTH)
-        WRITE (994, 9104) C, BRLAMBDA0, K(IK),SDSHS0 
+!!        SDSHS0=SIG(IK)*SUM(SRHS(IS0+1:IS0+NTH)*DTH)
+!!        BRLAMBDA0=2*GRAV/(C**3)*SIG(IK)*SUM(BRLAMBDA(IS0+1:IS0+NTH)*DTH)
+!!        WRITE (994, 9104) C, BRLAMBDA0, K(IK),SDSHS0 
         ! diagonal
         DDIAG(IS0+1:IS0+NTH) = SRHS(IS0+1:IS0+NTH)*SSDSBR/MAX(1.e-20,BTH(1:NTH))/MAX(1e-20,A(IS0+1:IS0+NTH))  !
       END DO
 !! RF
-      CLOSE(994)
+!!      CLOSE(994)
 !! RF
       !   Breaking probability (Is actually the breaking rate)
       PB = BRLAMBDA *C
@@ -2658,8 +2658,8 @@ CONTAINS
       ! Kudryavtsev & Makin 2001 / Kudryavtsev et al 2014
       !
 !! RF
-      FNAMETEST='RF_SDS4.dat'
-      OPEN (994,FILE=FNAMETEST,FORM='FORMATTED', STATUS='REPLACE')
+!!      FNAMETEST='RF_SDS4.dat'
+!!      OPEN (994,FILE=FNAMETEST,FORM='FORMATTED', STATUS='REPLACE')
 !! RF 
       COSU   = COS(USDIR)
       SINU   = SIN(USDIR)
@@ -2715,13 +2715,13 @@ CONTAINS
            DDIAG(IS) = SRHS(IS)*SSDSBR/MAX(1.e-20,BTH(NTH))/MAX(1e-20,A(IS))  !
         END DO
 !! RF 
-        BTH0(IK)=SUM(SIG(IK)*BTH(IS0+1:IS0+NTH)*DTH)
-        BRLAMBDA0=2*GRAV/C**3*SIG(IK)*SUM(BRLAMBDA(IS0+1:IS0+NTH)*DTH)
-        SDSHS0=SIG(IK)*SUM(SRHS(IS0+1:IS0+NTH)*DTH)
-        WRITE (994, 9104) C, BRLAMBDA0, K(IK), BTH0(IK)
+!!        BTH0(IK)=SUM(SIG(IK)*BTH(IS0+1:IS0+NTH)*DTH)
+!!        BRLAMBDA0=2*GRAV/C**3*SIG(IK)*SUM(BRLAMBDA(IS0+1:IS0+NTH)*DTH)
+!!        SDSHS0=SIG(IK)*SUM(SRHS(IS0+1:IS0+NTH)*DTH)
+!!        WRITE (994, 9104) C, BRLAMBDA0, K(IK), BTH0(IK)
       END DO
 !! RF
-      CLOSE(994)
+!!      CLOSE(994)
 !! RF
     END SELECT
     !############################################################################################"
@@ -2859,8 +2859,8 @@ CONTAINS
     ! Formats
     !
 !! RF
-    9104 FORMAT (F8.4,3E12.4 )
-    9105 FORMAT (F8.4,I8,7E12.4 )
+!!    9104 FORMAT (F8.4,3E12.4 )
+!!    9105 FORMAT (F8.4,I8,7E12.4 )
 !!RF
     !/
     !/ End of W3SDS4 ----------------------------------------------------- /
